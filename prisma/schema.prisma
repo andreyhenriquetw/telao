@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Camarote {
+  id          String       @id @default(uuid())
+  numero      String       @unique
+  nomeCliente String
+  totalGasto  Float        @default(0.0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  transacoes  Transacao[]
+
+  @@index([totalGasto])
+}
+
+model Transacao {
+  id         String   @id @default(uuid())
+  camaroteId String
+  camarote   Camarote @relation(fields: [camaroteId], references: [id], onDelete: Cascade)
+  valor      Float
+  descricao  String?
+  createdAt  DateTime @default(now())
+
+  @@index([camaroteId])
+}

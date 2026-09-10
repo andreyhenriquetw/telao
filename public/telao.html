@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Ranking da Noite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Manrope:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --gold: #f6bd45;
+        --cream: #fff5db;
+        --bg: #07080b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(
+          ellipse at 50% -20%,
+          #3b2911 0,
+          #11100c 28%,
+          var(--bg) 64%
+        );
+        color: var(--cream);
+        font-family: Manrope, sans-serif;
+        overflow: hidden;
+      }
+      .condensed {
+        font-family: "Barlow Condensed", sans-serif;
+      }
+      .scanlines {
+        background-image: linear-gradient(#ffffff03 1px, transparent 1px);
+        background-size: 100% 5px;
+        pointer-events: none;
+      }
+      .rank-row {
+        animation: rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      }
+      .rank-row:nth-child(2) {
+        animation-delay: 0.05s;
+      }
+      .rank-row:nth-child(3) {
+        animation-delay: 0.1s;
+      }
+      .rank-row:nth-child(4) {
+        animation-delay: 0.15s;
+      }
+      .rank-row:nth-child(5) {
+        animation-delay: 0.2s;
+      }
+      .rank-row:nth-child(6) {
+        animation-delay: 0.25s;
+      }
+      .rank-row:nth-child(7) {
+        animation-delay: 0.3s;
+      }
+      .rank-row:nth-child(8) {
+        animation-delay: 0.35s;
+      }
+      .rank-row:nth-child(9) {
+        animation-delay: 0.4s;
+      }
+      .rank-row:nth-child(10) {
+        animation-delay: 0.45s;
+      }
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(18px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .rank-row.reordering {
+        animation: none;
+        will-change: transform;
+      }
+      #flash {
+        background: radial-gradient(circle, #47300c 0, #08090b 70%);
+        animation: flashIn 0.45s ease-out;
+      }
+      @keyframes flashIn {
+        from {
+          opacity: 0;
+          transform: scale(1.08);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .flash-line {
+        height: 4px;
+        background: var(--gold);
+        box-shadow: 0 0 30px var(--gold);
+        animation: line 8s linear forwards;
+      }
+      @keyframes line {
+        from {
+          width: 100%;
+        }
+        to {
+          width: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scanlines fixed inset-0 z-50"></div>
+    <main
+      class="mx-auto flex min-h-screen max-w-[1800px] flex-col px-8 py-7 md:px-16 md:py-10"
+    >
+      <header
+        class="flex items-end justify-between border-b border-white/10 pb-6"
+      >
+        <div>
+          <p
+            class="condensed text-lg font-bold uppercase tracking-[.45em] text-[#f6bd45]"
+          >
+            Boate apresenta
+          </p>
+          <h1
+            class="condensed text-6xl font-black uppercase leading-[.8] tracking-tight md:text-8xl"
+          >
+            Ranking <span class="text-[#f6bd45]">da noite</span>
+          </h1>
+        </div>
+        <div class="text-right">
+          <p class="condensed text-3xl font-bold uppercase text-white/80">
+            Top 10
+          </p>
+          <p class="text-xs uppercase tracking-[.3em] text-white/35">Ao vivo</p>
+        </div>
+      </header>
+      <section class="flex-1 py-8">
+        <div id="ranking" class="grid gap-3"></div>
+        <div id="empty" class="hidden py-28 text-center">
+          <p class="condensed text-5xl font-bold uppercase text-white/20">
+            A noite está apenas começando
+          </p>
+        </div>
+      </section>
+      <footer
+        class="flex items-center justify-between border-t border-white/10 pt-5 text-xs uppercase tracking-[.25em] text-white/30"
+      >
+        <span>Live leaderboard</span><span id="clock"></span>
+      </footer>
+    </main>
+    <div
+      id="flash"
+      class="fixed inset-0 z-[60] hidden flex-col items-center justify-center text-center"
+    >
+      <div class="flash-line absolute left-0 top-0"></div>
+      <p
+        class="condensed mb-4 text-3xl font-bold uppercase tracking-[.4em] text-[#f6bd45]"
+      >
+        Flash alert
+      </p>
+      <div
+        class="condensed max-w-[90vw] text-7xl font-black uppercase leading-none md:text-[10rem]"
+        id="flash-number"
+      ></div>
+      <div
+        class="mt-7 max-w-[90vw] text-3xl font-bold text-white/80 md:text-5xl"
+        id="flash-client"
+      ></div>
+      <div
+        class="mt-12 rounded-full border border-[#f6bd45]/40 px-8 py-3 font-bold text-[#f6bd45]"
+        id="flash-value"
+      ></div>
+    </div>
+    <script>
+      const money = (value) =>
+        `R$ ${Number(value).toLocaleString("pt-BR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+          useGrouping: false,
+        })}`;
+      const ranking = document.querySelector("#ranking");
+      let currentRanking = [];
+      function esc(v) {
+        return String(v).replace(
+          /[&<>'"]/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              "'": "&#39;",
+              '"': "&quot;",
+            })[c],
+        );
+      }
+      function render(rows = [], animate = false) {
+        const previousPositions = new Map(
+          [...ranking.querySelectorAll("[data-ranking-id]")].map((element) => [
+            element.dataset.rankingId,
+            element.getBoundingClientRect().top,
+          ]),
+        );
+        currentRanking = rows;
+        document
+          .querySelector("#empty")
+          .classList.toggle("hidden", rows.length > 0);
+        ranking.innerHTML = rows
+          .map((item, index) => {
+            return `<article data-ranking-id="${item.id}" class="rank-row grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_150px] items-center gap-4 border-b border-white/[.07] py-3 text-left md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_240px] md:gap-8 md:py-4"><div class="flex min-w-0 items-center gap-4 text-left"><span class="condensed shrink-0 text-5xl font-black ${index < 3 ? "text-[#f6bd45]" : "text-white/25"} md:text-7xl">${String(index + 1).padStart(2, "0")}</span><span class="condensed truncate text-4xl font-bold uppercase md:text-6xl">${esc(item.numero)}</span></div><span class="min-w-0 truncate text-left text-xl font-semibold text-white/45 md:text-3xl">${esc(item.nomeCliente)}</span><span class="condensed truncate text-left text-4xl font-black text-[#f6bd45] md:text-6xl">${money(item.totalGasto)}</span></article>`;
+          })
+          .join("");
+        if (animate) {
+          const movedRows = [...ranking.querySelectorAll("[data-ranking-id]")]
+            .map((element) => ({
+              element,
+              distance:
+                previousPositions.get(element.dataset.rankingId) -
+                element.getBoundingClientRect().top,
+            }))
+            .filter(
+              ({ distance }) =>
+                Number.isFinite(distance) && Math.abs(distance) > 2,
+            );
+          movedRows.forEach(({ element, distance }) => {
+            element.classList.add("reordering");
+            element.style.transform = `translateY(${distance}px)`;
+            element.style.transition = "none";
+          });
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              movedRows.forEach(({ element }) => {
+                element.style.transition =
+                  "transform 2.6s cubic-bezier(0.22, 0.8, 0.2, 1)";
+                element.style.transform = "translateY(0)";
+              });
+            });
+          });
+        }
+      }
+      async function load() {
+        try {
+          const response = await fetch("/api/ranking");
+          render(await response.json());
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      function celebrate(venda, transacao, afterAlert) {
+        document.querySelector("#flash-number").textContent = venda.numero;
+        document.querySelector("#flash-client").textContent = venda.nomeCliente;
+        document.querySelector("#flash-value").textContent = money(
+          transacao.valor,
+        );
+        const flash = document.querySelector("#flash");
+        flash.classList.remove("hidden");
+        flash.classList.add("flex");
+        const context = new AudioContext();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.frequency.setValueAtTime(440, context.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(
+          880,
+          context.currentTime + 0.25,
+        );
+        gain.gain.setValueAtTime(0.08, context.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 1);
+        oscillator.connect(gain).connect(context.destination);
+        oscillator.start();
+        oscillator.stop(context.currentTime + 1);
+        setTimeout(() => {
+          flash.classList.add("hidden");
+          flash.classList.remove("flex");
+          afterAlert();
+        }, 8000);
+      }
+      const socket = io();
+      socket.on("NOVA_VENDA", (data) => {
+        celebrate(data.venda, data.transacao, () => {
+          render(data.ranking, true);
+        });
+      });
+      socket.on("RANKING_RESET", () => render([]));
+      load();
+      setInterval(
+        () =>
+          (document.querySelector("#clock").textContent =
+            new Date().toLocaleTimeString("pt-BR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })),
+        1000,
+      );
+    </script>
+  </body>
+</html>

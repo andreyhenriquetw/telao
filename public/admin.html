@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Operacao | Ranking da Noite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              display: ["Rajdhani", "sans-serif"],
+              sans: ["Manrope", "sans-serif"],
+            },
+            colors: {
+              ink: "#08090d",
+              panel: "#11131a",
+              gold: "#f3b744",
+              mint: "#61f2c2",
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Rajdhani:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background:
+          radial-gradient(circle at 90% 0%, #2b2110 0, transparent 32%), #08090d;
+        color: #f7f3ea;
+        font-family: Manrope, sans-serif;
+      }
+      .glow {
+        box-shadow:
+          0 0 0 1px #ffffff0d,
+          0 18px 60px #0008;
+      }
+      .grid-bg {
+        background-image:
+          linear-gradient(#ffffff06 1px, transparent 1px),
+          linear-gradient(90deg, #ffffff06 1px, transparent 1px);
+        background-size: 32px 32px;
+      }
+      .input {
+        background: #0b0d12;
+        border: 1px solid #ffffff18;
+        outline: none;
+      }
+      .input:focus {
+        border-color: #f3b744;
+        box-shadow: 0 0 0 3px #f3b7441f;
+      }
+      .toast {
+        animation: slide 0.3s ease-out;
+      }
+      .modal-backdrop {
+        background: rgb(0 0 0 / 75%);
+        backdrop-filter: blur(8px);
+      }
+      @keyframes slide {
+        from {
+          transform: translateY(20px);
+          opacity: 0;
+        }
+        to {
+          transform: none;
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen grid-bg">
+    <main class="mx-auto max-w-7xl p-5 md:p-10">
+      <header class="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p
+            class="mb-2 font-display text-sm font-bold uppercase tracking-[.35em] text-gold"
+          >
+            Operacao ao vivo
+          </p>
+          <h1
+            class="font-display text-5xl font-bold uppercase leading-none md:text-7xl"
+          >
+            Ranking da noite
+          </h1>
+        </div>
+        <a
+          href="/telao.html"
+          target="_blank"
+          class="rounded-full border border-white/15 px-5 py-3 text-sm font-bold transition hover:border-gold hover:text-gold"
+          >Abrir telão ↗</a
+        >
+      </header>
+      <div class="grid gap-6 lg:grid-cols-[390px_1fr]">
+        <section class="glow rounded-2xl bg-panel p-6 md:p-8">
+          <div class="mb-7">
+            <h2 class="font-display text-2xl font-bold uppercase">
+              Nova venda
+            </h2>
+            <p class="mt-1 text-sm text-white/45">
+              Lance o consumo do camarote em segundos.
+            </p>
+          </div>
+          <form id="sale-form" class="space-y-4">
+            <label class="block text-sm font-semibold text-white/70"
+              >Camarote / mesa<input
+                required
+                id="camaroteNumero"
+                class="input mt-2 w-full rounded-xl px-4 py-4 text-lg"
+                placeholder="Camarote 01" /></label
+            ><label class="block text-sm font-semibold text-white/70"
+              >Nome do cliente<input
+                required
+                id="nomeCliente"
+                class="input mt-2 w-full rounded-xl px-4 py-4 text-lg"
+                placeholder="Gabriel & Amigos" /></label
+            ><label class="block text-sm font-semibold text-white/70"
+              >Valor do combo<input
+                required
+                min="0.01"
+                step="0.01"
+                type="text"
+                inputmode="decimal"
+                id="valor"
+                class="input mt-2 w-full rounded-xl px-4 py-4 text-lg"
+                placeholder="5000,00" /></label
+            ><label class="block text-sm font-semibold text-white/70"
+              >Descrição
+              <span class="font-normal text-white/35">(opcional)</span
+              ><input
+                id="descricao"
+                class="input mt-2 w-full rounded-xl px-4 py-4"
+                placeholder="Combo Dom Pérignon" /></label
+            ><button
+              id="submit-button"
+              class="mt-3 w-full rounded-xl bg-gold px-5 py-5 font-display text-xl font-bold uppercase tracking-wide text-black transition hover:brightness-110 disabled:opacity-60"
+            >
+              Enviar para o telão
+            </button>
+            <p id="form-message" class="min-h-5 text-center text-sm"></p>
+          </form>
+        </section>
+        <section class="glow rounded-2xl bg-panel p-6 md:p-8">
+          <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+              <p
+                class="font-display text-sm uppercase tracking-[.25em] text-white/40"
+              >
+                Top 10
+              </p>
+              <h2 class="font-display text-3xl font-bold uppercase">
+                Maiores gastadores
+              </h2>
+            </div>
+            <button
+              id="all-button"
+              class="rounded-lg border border-white/15 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white/60 transition hover:border-gold hover:text-gold"
+            >
+              Ver todos
+            </button>
+            <button
+              id="reset-button"
+              class="rounded-lg border border-red-400/30 px-4 py-2 text-xs font-bold uppercase tracking-wider text-red-300 transition hover:bg-red-400/10"
+            >
+              Resetar noite
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[540px] text-left">
+              <thead
+                class="border-b border-white/10 text-xs uppercase tracking-wider text-white/35"
+              >
+                <tr>
+                  <th class="pb-3">#</th>
+                  <th class="pb-3">Camarote</th>
+                  <th class="pb-3">Cliente</th>
+                  <th class="pb-3 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody id="ranking-body" class="divide-y divide-white/5"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+    <div
+      id="sale-modal"
+      class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4"
+    >
+      <section class="glow w-full max-w-lg rounded-2xl bg-panel p-6 md:p-8">
+        <div class="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p
+              class="font-display text-sm uppercase tracking-[.25em] text-gold"
+            >
+              Combo adicional
+            </p>
+            <h2
+              id="modal-customer"
+              class="mt-1 font-display text-3xl font-bold uppercase"
+            ></h2>
+            <p id="modal-booth" class="text-sm text-white/45"></p>
+          </div>
+          <button
+            id="close-modal"
+            type="button"
+            class="text-2xl text-white/50 hover:text-white"
+            aria-label="Fechar"
+          >
+            &times;
+          </button>
+        </div>
+        <form id="additional-sale-form" class="space-y-4">
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="block text-sm font-semibold text-white/70"
+              >Camarote / mesa
+              <input
+                required
+                id="modal-booth-input"
+                class="input mt-2 w-full rounded-xl px-4 py-4"
+                placeholder="Camarote 01"
+              />
+            </label>
+            <label class="block text-sm font-semibold text-white/70"
+              >Nome do cliente
+              <input
+                required
+                id="modal-customer-input"
+                class="input mt-2 w-full rounded-xl px-4 py-4"
+                placeholder="Nome do cliente"
+              />
+            </label>
+          </div>
+          <label class="block text-sm font-semibold text-white/70"
+            >Descrição do combo
+            <input
+              id="modal-description"
+              class="input mt-2 w-full rounded-xl px-4 py-4"
+              placeholder="Combo Dom Pérignon"
+            />
+          </label>
+          <label class="block text-sm font-semibold text-white/70"
+            >Valor do combo
+            <input
+              required
+              id="modal-value"
+              class="input mt-2 w-full rounded-xl px-4 py-4 text-lg"
+              inputmode="decimal"
+              placeholder="300,00"
+            />
+          </label>
+          <p id="modal-message" class="min-h-5 text-center text-sm"></p>
+          <button
+            id="modal-save"
+            class="w-full rounded-xl bg-gold px-5 py-4 font-display text-xl font-bold uppercase tracking-wide text-black transition hover:brightness-110 disabled:opacity-60"
+          >
+            Salvar e voltar
+          </button>
+        </form>
+      </section>
+    </div>
+    <div
+      id="toast"
+      class="fixed bottom-6 right-6 hidden rounded-xl border border-mint/30 bg-[#0c201b] px-5 py-4 text-sm font-bold text-mint"
+    ></div>
+    <script>
+      const money = (value) =>
+        Number(value).toLocaleString("pt-BR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+          useGrouping: false,
+        });
+      const form = document.querySelector("#sale-form"),
+        body = document.querySelector("#ranking-body"),
+        message = document.querySelector("#form-message"),
+        button = document.querySelector("#submit-button"),
+        allButton = document.querySelector("#all-button"),
+        saleModal = document.querySelector("#sale-modal"),
+        additionalSaleForm = document.querySelector("#additional-sale-form"),
+        modalBoothInput = document.querySelector("#modal-booth-input"),
+        modalCustomerInput = document.querySelector("#modal-customer-input"),
+        modalValue = document.querySelector("#modal-value"),
+        modalMessage = document.querySelector("#modal-message"),
+        modalSave = document.querySelector("#modal-save");
+      let selectedCamaroteId = null;
+      function render(rows = []) {
+        body.innerHTML =
+          rows
+            .map(
+              (item, index) =>
+                `<tr data-camarote-id="${item.id}" class="cursor-pointer hover:bg-white/[.03]"><td class="py-5 font-display text-2xl font-bold ${index < 3 ? "text-gold" : "text-white/35"}">${String(index + 1).padStart(2, "0")}</td><td class="py-5 font-semibold">${escapeHtml(item.numero)}</td><td class="py-5 text-white/55">${escapeHtml(item.nomeCliente)}</td><td class="py-5 text-right font-display text-xl font-bold text-gold">${money(item.totalGasto)}</td></tr>`,
+            )
+            .join("") ||
+          '<tr><td colspan="4" class="py-16 text-center text-white/30">Nenhuma venda registrada ainda.</td></tr>';
+      }
+      function escapeHtml(value) {
+        return String(value).replace(
+          /[&<>'"]/g,
+          (char) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              "'": "&#39;",
+              '"': "&quot;",
+            })[char],
+        );
+      }
+      async function readJson(response) {
+        const text = await response.text();
+        try {
+          return JSON.parse(text);
+        } catch {
+          throw new Error(
+            "O servidor em execucao ainda e antigo. Pare-o com Ctrl+C e execute npm start novamente.",
+          );
+        }
+      }
+      async function openSaleModal(id) {
+        selectedCamaroteId = id;
+        modalMessage.textContent = "Carregando cliente...";
+        saleModal.classList.remove("hidden");
+        saleModal.classList.add("flex");
+        modalSave.disabled = true;
+        try {
+          const response = await fetch(`/api/camarote/${id}`);
+          const item = await readJson(response);
+          if (!response.ok) throw new Error(item.error);
+          document.querySelector("#modal-customer").textContent =
+            item.nomeCliente;
+          modalBoothInput.value = item.numero;
+          modalCustomerInput.value = item.nomeCliente;
+          document.querySelector("#modal-booth").textContent =
+            `${item.numero} • Total atual: ${money(item.totalGasto)}`;
+          modalMessage.textContent = "";
+          modalSave.disabled = false;
+          modalValue.focus();
+        } catch (error) {
+          modalMessage.textContent = error.message;
+          modalMessage.className = "min-h-5 text-center text-sm text-red-300";
+        }
+      }
+      function closeSaleModal() {
+        saleModal.classList.add("hidden");
+        saleModal.classList.remove("flex");
+        additionalSaleForm.reset();
+        modalMessage.className = "min-h-5 text-center text-sm";
+      }
+      async function load(url = "/api/ranking") {
+        try {
+          const response = await fetch(url);
+          const result = await readJson(response);
+          if (!response.ok) throw new Error(result.error);
+          render(result);
+        } catch (error) {
+          render([]);
+          message.textContent = error.message;
+          message.className = "min-h-5 text-center text-sm text-red-300";
+        }
+      }
+      async function submit(event) {
+        event.preventDefault();
+        button.disabled = true;
+        message.textContent = "Enviando...";
+        message.className = "min-h-5 text-center text-sm text-white/50";
+        const data = {
+          camaroteNumero: camaroteNumero.value,
+          nomeCliente: nomeCliente.value,
+          valor: valor.value,
+          descricao: descricao.value,
+        };
+        try {
+          const response = await fetch("/api/venda", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+          const result = await readJson(response);
+          if (!response.ok) throw new Error(result.error);
+          render(result.ranking);
+          form.reset();
+          message.textContent = "Venda enviada para o telão.";
+          message.className = "min-h-5 text-center text-sm text-mint";
+        } catch (error) {
+          message.textContent = error.message;
+          message.className = "min-h-5 text-center text-sm text-red-300";
+        } finally {
+          button.disabled = false;
+        }
+      }
+      form.addEventListener("submit", submit);
+      allButton.addEventListener("click", () => {
+        const showingAll = allButton.dataset.all === "true";
+        allButton.dataset.all = String(!showingAll);
+        allButton.textContent = showingAll ? "Ver todos" : "Ver top 10";
+        load(showingAll ? "/api/ranking" : "/api/camarotes");
+      });
+      body.addEventListener("click", (event) => {
+        const row = event.target.closest("tr[data-camarote-id]");
+        if (row) openSaleModal(row.dataset.camaroteId);
+      });
+      document
+        .querySelector("#close-modal")
+        .addEventListener("click", closeSaleModal);
+      saleModal.addEventListener("click", (event) => {
+        if (event.target === saleModal) closeSaleModal();
+      });
+      additionalSaleForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        modalSave.disabled = true;
+        modalMessage.textContent = "Salvando...";
+        try {
+          const response = await fetch(
+            `/api/camarote/${selectedCamaroteId}/venda`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                numero: modalBoothInput.value,
+                nomeCliente: modalCustomerInput.value,
+                valor: modalValue.value,
+                descricao: document.querySelector("#modal-description").value,
+              }),
+            },
+          );
+          const result = await readJson(response);
+          if (!response.ok) throw new Error(result.error);
+          closeSaleModal();
+          render(result.ranking);
+          showToast("Combo salvo e enviado para o telão.");
+        } catch (error) {
+          modalMessage.textContent = error.message;
+          modalMessage.className = "min-h-5 text-center text-sm text-red-300";
+          modalSave.disabled = false;
+        }
+      });
+      document
+        .querySelector("#reset-button")
+        .addEventListener("click", async () => {
+          if (!confirm("Apagar o ranking e as transações desta noite?")) return;
+          const response = await fetch("/api/reset", { method: "POST" });
+          if (response.ok) {
+            render([]);
+            showToast("Ranking resetado.");
+          }
+        });
+      function showToast(text) {
+        const toast = document.querySelector("#toast");
+        toast.textContent = text;
+        toast.classList.remove("hidden");
+        setTimeout(() => toast.classList.add("hidden"), 3000);
+      }
+      load();
+    </script>
+  </body>
+</html>
