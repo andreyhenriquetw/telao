@@ -438,6 +438,62 @@
         box-shadow: 0 0 18px var(--gold);
         animation: line 3s linear forwards;
       }
+      @media (min-width: 900px) and (max-height: 600px) {
+        body {
+          min-width: 1024px;
+          min-height: 512px;
+        }
+        .stage {
+          min-height: 512px;
+          padding: 0.75rem 2rem;
+        }
+        .stage header {
+          padding-bottom: 0.25rem;
+        }
+        .stage header p {
+          font-size: 0.85rem;
+        }
+        .stage header h1 {
+          font-size: 4.5rem;
+        }
+        .ranking-panel {
+          padding-top: 0.25rem;
+          padding-bottom: 0.25rem;
+        }
+        .column-head {
+          margin-bottom: 0.25rem;
+          gap: 1rem;
+          padding: 0.25rem 1rem;
+          font-size: 1.35rem;
+        }
+        .ranking-panel #ranking {
+          gap: 0.25rem;
+        }
+        .rank-row {
+          min-height: 2.1rem;
+          gap: 1rem;
+          border-width: 1px;
+          border-radius: 10px;
+          padding: 0.1rem 1rem;
+        }
+        .rank-medal {
+          width: 3.2rem;
+          height: 2rem;
+          font-size: 2rem;
+          border-width: 1px;
+        }
+        .rank-row .row-label,
+        .rank-row .row-value {
+          font-size: 1.55rem;
+        }
+        .stage footer {
+          padding-top: 0.25rem;
+        }
+        .rabbit {
+          top: 13%;
+          width: 230px;
+        }
+      }
       @keyframes line {
         from {
           width: 100%;
