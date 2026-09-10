@@ -185,7 +185,6 @@
         `R$ ${Number(value).toLocaleString("pt-BR", {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
-          useGrouping: false,
         })}`;
       const ranking = document.querySelector("#ranking");
       let currentRanking = [];
@@ -215,7 +214,7 @@
           .classList.toggle("hidden", rows.length > 0);
         ranking.innerHTML = rows
           .map((item, index) => {
-            return `<article data-ranking-id="${item.id}" class="rank-row grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_150px] items-center gap-4 border-b border-white/[.07] py-3 text-left md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_240px] md:gap-8 md:py-4"><div class="flex min-w-0 items-center gap-4 text-left"><span class="condensed shrink-0 text-5xl font-black ${index < 3 ? "text-[#f6bd45]" : "text-white/25"} md:text-7xl">${String(index + 1).padStart(2, "0")}</span><span class="condensed truncate text-4xl font-bold uppercase md:text-6xl">${esc(item.numero)}</span></div><span class="min-w-0 truncate text-left text-xl font-semibold text-white/45 md:text-3xl">${esc(item.nomeCliente)}</span><span class="condensed truncate text-left text-4xl font-black text-[#f6bd45] md:text-6xl">${money(item.totalGasto)}</span></article>`;
+            return `<article data-ranking-id="${item.id}" class="rank-row grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_max-content] items-center gap-4 border-b border-white/[.07] py-3 text-left md:gap-8 md:py-4"><div class="flex min-w-0 items-center gap-4 text-left"><span class="condensed shrink-0 text-5xl font-black ${index < 3 ? "text-[#f6bd45]" : "text-white/25"} md:text-7xl">${String(index + 1).padStart(2, "0")}</span><span class="condensed truncate text-4xl font-bold uppercase md:text-6xl">${esc(item.numero)}</span></div><span class="min-w-0 truncate text-left text-xl font-semibold text-white/45 md:text-3xl">${esc(item.nomeCliente)}</span><span class="condensed whitespace-nowrap text-left text-4xl font-black text-[#f6bd45] md:text-6xl">${money(item.totalGasto)}</span></article>`;
           })
           .join("");
         if (animate) {
