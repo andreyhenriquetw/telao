@@ -281,6 +281,13 @@
         animation: none;
         will-change: transform;
       }
+      .rank-row .row-label {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        overflow-wrap: anywhere;
+        line-height: 0.95;
+      }
       #flash {
         overflow: hidden;
         background: radial-gradient(circle, #47300c 0, #08090b 70%);
@@ -539,7 +546,11 @@
         }
         .rank-row .row-label,
         .rank-row .row-value {
-          font-size: 1.55rem;
+          font-size: 1.25rem;
+        }
+        .rank-row .row-label {
+          min-width: 0;
+          padding-inline: 0.15rem;
         }
         .stage footer {
           padding-top: 0.25rem;
