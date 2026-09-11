@@ -700,6 +700,7 @@
           .querySelector("#empty")
           .classList.toggle("hidden", rows.length > 0);
         ranking.innerHTML = rows
+          .slice(0, 6)
           .map((item, index) => {
             return `<article data-ranking-id="${item.id}" class="rank-row rank-${index + 1} grid grid-cols-[clamp(56px,8vw,112px)_minmax(100px,1fr)_minmax(0,2fr)_minmax(130px,1fr)] items-center gap-4 text-center md:gap-8"><span class="rank-medal condensed">${index + 1}</span><span class="row-label min-w-0 truncate text-center condensed text-2xl font-black uppercase md:text-5xl">${esc(item.numero)}</span><span class="row-label min-w-0 truncate text-center text-base font-bold uppercase md:text-3xl">${esc(item.nomeCliente)}</span><span class="row-value min-w-0 whitespace-nowrap text-center condensed text-2xl font-black md:text-5xl">${money(item.totalGasto)}</span></article>`;
           })
