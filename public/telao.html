@@ -658,6 +658,8 @@
       const showcaseImages = ["/01.jpeg", "/02.jpeg", "/03.jpeg", "/04.jpeg"];
       let currentRanking = [];
       let showcaseStarted = false;
+      let showcaseRun = 0;
+      let showcaseStartTimer = null;
       function launchCelebration() {
         const colors = ["#ffd42a", "#4ce8ff", "#ff4fc5", "#ffffff", "#8d61ff"];
         const pieces = Array.from({ length: 44 }, (_, index) => {
@@ -741,10 +743,12 @@
       async function startShowcase() {
         if (showcaseStarted) return;
         showcaseStarted = true;
+        const currentRun = ++showcaseRun;
         let firstRound = true;
-        while (true) {
+        while (currentRun === showcaseRun) {
           if (!firstRound)
             await new Promise((resolve) => setTimeout(resolve, 20000));
+          if (currentRun !== showcaseRun) return;
           firstRound = false;
           showcase.classList.remove("hidden");
           showcase.classList.add("flex");
@@ -759,6 +763,7 @@
               );
             });
             await new Promise((resolve) => setTimeout(resolve, 5000));
+            if (currentRun !== showcaseRun) return;
             showcaseImage.classList.remove("is-visible");
             showcaseImage.classList.add("is-leaving");
             await new Promise((resolve) => setTimeout(resolve, 850));
@@ -770,6 +775,17 @@
           showcase.classList.remove("flex");
           showcase.classList.add("hidden");
         }
+      }
+      async function stopShowcase() {
+        clearTimeout(showcaseStartTimer);
+        showcaseStartTimer = null;
+        showcaseRun += 1;
+        showcaseStarted = false;
+        showcase.classList.remove("is-active");
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        showcase.classList.remove("flex");
+        showcase.classList.add("hidden");
+        showcaseImage.className = "showcase-image";
       }
       function celebrate(venda, transacao, afterAlert) {
         document.querySelector("#flash-number").textContent = venda.numero;
@@ -802,14 +818,16 @@
         }, 3000);
       }
       const socket = io();
-      socket.on("NOVA_VENDA", (data) => {
+      socket.on("NOVA_VENDA", async (data) => {
+        await stopShowcase();
         celebrate(data.venda, data.transacao, () => {
           render(data.ranking, true);
+          showcaseStartTimer = setTimeout(startShowcase, 20000);
         });
       });
       socket.on("RANKING_RESET", () => render([]));
       load();
-      setTimeout(startShowcase, 5000);
+      showcaseStartTimer = setTimeout(startShowcase, 5000);
       setInterval(
         () =>
           (document.querySelector("#clock").textContent =
