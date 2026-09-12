@@ -635,7 +635,7 @@
     </div>
     <div
       id="flash"
-      class="fixed inset-0 z-[60] hidden flex-col items-center justify-center text-center"
+      class="fixed inset-0 z-[80] hidden flex-col items-center justify-center text-center"
     >
       <div class="flash-line absolute left-0 top-0"></div>
       <div class="fireworks">
@@ -853,9 +853,9 @@
         showcaseRun += 1;
         showcaseStarted = false;
         showcase.classList.remove("is-active");
-        await new Promise((resolve) => setTimeout(resolve, 800));
         showcase.classList.remove("flex");
         showcase.classList.add("hidden");
+        await new Promise((resolve) => setTimeout(resolve, 800));
         showcaseImage.className = "showcase-image";
         showcaseVideo.pause();
         showcaseVideo.className = "showcase-image showcase-video";
