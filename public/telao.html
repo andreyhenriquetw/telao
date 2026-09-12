@@ -714,6 +714,8 @@
       let showcaseStarted = false;
       let showcaseRun = 0;
       let showcaseStartTimer = null;
+      let flashTimer = null;
+      let flashRun = 0;
       function launchCelebration() {
         const colors = ["#ffd42a", "#4ce8ff", "#ff4fc5", "#ffffff", "#8d61ff"];
         const pieces = Array.from({ length: 44 }, (_, index) => {
@@ -858,6 +860,8 @@
         showcaseVideo.className = "showcase-image showcase-video";
       }
       function celebrate(venda, transacao, afterAlert) {
+        const currentFlashRun = ++flashRun;
+        clearTimeout(flashTimer);
         document.querySelector("#flash-number").textContent = venda.numero;
         document.querySelector("#flash-client").textContent = venda.nomeCliente;
         document.querySelector("#flash-value").textContent = money(
@@ -867,20 +871,28 @@
         launchCelebration();
         flash.classList.remove("hidden");
         flash.classList.add("flex");
-        const context = new AudioContext();
-        const oscillator = context.createOscillator();
-        const gain = context.createGain();
-        oscillator.frequency.setValueAtTime(440, context.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(
-          880,
-          context.currentTime + 0.25,
-        );
-        gain.gain.setValueAtTime(0.08, context.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 1);
-        oscillator.connect(gain).connect(context.destination);
-        oscillator.start();
-        oscillator.stop(context.currentTime + 1);
-        setTimeout(() => {
+        try {
+          const context = new AudioContext();
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          oscillator.frequency.setValueAtTime(440, context.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(
+            880,
+            context.currentTime + 0.25,
+          );
+          gain.gain.setValueAtTime(0.08, context.currentTime);
+          gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            context.currentTime + 1,
+          );
+          oscillator.connect(gain).connect(context.destination);
+          oscillator.start();
+          oscillator.stop(context.currentTime + 1);
+        } catch (error) {
+          console.warn("Audio do Flash alert indisponível:", error);
+        }
+        flashTimer = setTimeout(() => {
+          if (currentFlashRun !== flashRun) return;
           flash.classList.add("hidden");
           flash.classList.remove("flex");
           confettiLayer.replaceChildren();
