@@ -717,6 +717,8 @@
       let showcaseStartTimer = null;
       let flashTimer = null;
       let flashRun = 0;
+      let rankingSnapshot = new Map();
+      let lastAlertKey = "";
       function launchCelebration() {
         const colors = ["#ffd42a", "#4ce8ff", "#ff4fc5", "#ffffff", "#8d61ff"];
         const pieces = Array.from({ length: 44 }, (_, index) => {
@@ -792,10 +794,49 @@
       }
       async function load() {
         try {
-          const response = await fetch("/api/ranking");
-          render(await response.json());
+          const response = await fetch("/api/ranking", { cache: "no-store" });
+          const rows = await response.json();
+          rankingSnapshot = new Map(
+            rows.map((item) => [item.id, Number(item.totalGasto)]),
+          );
+          render(rows);
         } catch (error) {
           console.error(error);
+        }
+      }
+      async function pollRanking() {
+        try {
+          const response = await fetch(`/api/camarotes?poll=${Date.now()}`, {
+            cache: "no-store",
+          });
+          if (!response.ok) return;
+          const rows = await response.json();
+          const changedItem = rows.find(
+            (item) =>
+              !rankingSnapshot.has(item.id) ||
+              Number(item.totalGasto) !== rankingSnapshot.get(item.id),
+          );
+          const previousTotal = changedItem
+            ? rankingSnapshot.get(changedItem.id) || 0
+            : 0;
+          rankingSnapshot = new Map(
+            rows.map((item) => [item.id, Number(item.totalGasto)]),
+          );
+          if (!changedItem) return;
+          const amount = Math.max(
+            0,
+            Number(changedItem.totalGasto) - previousTotal,
+          );
+          handleNewSale({
+            venda: changedItem,
+            transacao: { valor: amount },
+            ranking: rows,
+          });
+        } catch (error) {
+          console.warn(
+            "Atualização automática do ranking indisponível:",
+            error,
+          );
         }
       }
       async function startShowcase() {
@@ -900,16 +941,26 @@
           afterAlert();
         }, 5000);
       }
-      const socket = io();
-      socket.on("NOVA_VENDA", async (data) => {
+      async function handleNewSale(data) {
+        const alertKey = `${data.venda.id}:${data.venda.totalGasto}`;
+        if (alertKey === lastAlertKey) return;
+        lastAlertKey = alertKey;
         await stopShowcase();
         celebrate(data.venda, data.transacao, () => {
           render(data.ranking, true);
           showcaseStartTimer = setTimeout(startShowcase, 30000);
         });
+      }
+      const socket = io();
+      socket.on("NOVA_VENDA", async (data) => {
+        data.ranking.forEach((item) =>
+          rankingSnapshot.set(item.id, Number(item.totalGasto)),
+        );
+        handleNewSale(data);
       });
       socket.on("RANKING_RESET", () => render([]));
       load();
+      setInterval(pollRanking, 2000);
       showcaseStartTimer = setTimeout(startShowcase, 5000);
       setInterval(
         () =>
