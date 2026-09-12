@@ -281,6 +281,14 @@ app.post("/api/reset", async (req, res) => {
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
+app.use((error, req, res, next) => {
+  console.error("Erro nao tratado na API:", error);
+  if (res.headersSent) return next(error);
+  res.status(500).json({
+    error: "Erro interno do servidor ao processar a operação.",
+  });
+});
+
 io.on("connection", (socket) => {
   console.log(`Cliente conectado: ${socket.id}`);
   socket.on("disconnect", () =>
