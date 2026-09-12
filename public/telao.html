@@ -877,7 +877,7 @@
         await stopShowcase();
         celebrate(data.venda, data.transacao, () => {
           render(data.ranking, true);
-          showcaseStartTimer = setTimeout(startShowcase, 20000);
+          showcaseStartTimer = setTimeout(startShowcase, 30000);
         });
       });
       socket.on("RANKING_RESET", () => render([]));
