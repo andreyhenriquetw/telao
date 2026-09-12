@@ -339,6 +339,10 @@
       .showcase-video {
         object-fit: cover;
       }
+      .showcase-image-contained {
+        object-fit: contain;
+        background: #fff;
+      }
       .showcase-image.is-visible {
         opacity: 1;
         transform: none;
@@ -679,7 +683,12 @@
       const showcaseImage = showcase.querySelector(".showcase-image");
       const showcaseVideo = showcase.querySelector(".showcase-video");
       const showcaseMedia = [
-        { source: "/001.jpeg", duration: 16000, type: "image" },
+        {
+          source: "/001.jpeg",
+          duration: 16000,
+          type: "image",
+          contain: true,
+        },
         { source: "/002.jpeg", duration: 32000, type: "image" },
         { source: "/003.mp4", duration: 20000, type: "video" },
         { source: "/004.jpeg", duration: 32000, type: "image" },
@@ -789,7 +798,7 @@
             const inactiveMedia =
               media.type === "video" ? showcaseImage : showcaseVideo;
             inactiveMedia.className = "showcase-image";
-            activeMedia.className = "showcase-image";
+            activeMedia.className = `showcase-image${media.contain ? " showcase-image-contained" : ""}`;
             if (media.type === "video") {
               showcaseVideo.src = media.source;
               showcaseVideo.currentTime = 0;
