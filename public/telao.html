@@ -336,6 +336,9 @@
         opacity: 0;
         transform: translate3d(12vw, 8vh, 0) scale(0.78) rotate(3deg);
       }
+      .showcase-video {
+        object-fit: cover;
+      }
       .showcase-image.is-visible {
         opacity: 1;
         transform: none;
@@ -617,6 +620,12 @@
       class="fixed inset-0 z-[70] hidden items-center justify-center"
     >
       <img class="showcase-image" alt="" />
+      <video
+        class="showcase-image showcase-video"
+        muted
+        playsinline
+        loop
+      ></video>
     </div>
     <div
       id="flash"
@@ -668,7 +677,14 @@
       const confettiLayer = document.querySelector("#confetti-layer");
       const showcase = document.querySelector("#showcase");
       const showcaseImage = showcase.querySelector(".showcase-image");
-      const showcaseImages = ["/01.jpeg", "/02.jpeg", "/03.jpeg", "/04.jpeg"];
+      const showcaseVideo = showcase.querySelector(".showcase-video");
+      const showcaseMedia = [
+        { source: "/001.jpeg", duration: 16000, type: "image" },
+        { source: "/002.jpeg", duration: 32000, type: "image" },
+        { source: "/003.mp4", duration: 20000, type: "video" },
+        { source: "/004.jpeg", duration: 32000, type: "image" },
+        { source: "/005.jpeg", duration: 16000, type: "image" },
+      ];
       let currentRanking = [];
       let showcaseStarted = false;
       let showcaseRun = 0;
@@ -767,22 +783,35 @@
           showcase.classList.remove("hidden");
           showcase.classList.add("flex");
           requestAnimationFrame(() => showcase.classList.add("is-active"));
-          for (const [index, source] of showcaseImages.entries()) {
-            showcaseImage.src = source;
-            showcaseImage.className = "showcase-image";
+          for (const [index, media] of showcaseMedia.entries()) {
+            const activeMedia =
+              media.type === "video" ? showcaseVideo : showcaseImage;
+            const inactiveMedia =
+              media.type === "video" ? showcaseImage : showcaseVideo;
+            inactiveMedia.className = "showcase-image";
+            activeMedia.className = "showcase-image";
+            if (media.type === "video") {
+              showcaseVideo.src = media.source;
+              showcaseVideo.currentTime = 0;
+              showcaseVideo.play().catch(() => {});
+            } else {
+              showcaseImage.src = media.source;
+            }
             void showcaseImage.offsetWidth;
             requestAnimationFrame(() => {
               requestAnimationFrame(() =>
-                showcaseImage.classList.add("is-visible"),
+                activeMedia.classList.add("is-visible"),
               );
             });
-            await new Promise((resolve) => setTimeout(resolve, 5000));
+            await new Promise((resolve) => setTimeout(resolve, media.duration));
             if (currentRun !== showcaseRun) return;
-            showcaseImage.classList.remove("is-visible");
-            showcaseImage.classList.add("is-leaving");
+            activeMedia.classList.remove("is-visible");
+            activeMedia.classList.add("is-leaving");
             await new Promise((resolve) => setTimeout(resolve, 850));
-            if (index < showcaseImages.length - 1)
-              showcaseImage.className = "showcase-image";
+            if (media.type === "video") showcaseVideo.pause();
+            if (index < showcaseMedia.length - 1) {
+              activeMedia.className = "showcase-image";
+            }
           }
           showcase.classList.remove("is-active");
           await new Promise((resolve) => setTimeout(resolve, 800));
@@ -800,6 +829,8 @@
         showcase.classList.remove("flex");
         showcase.classList.add("hidden");
         showcaseImage.className = "showcase-image";
+        showcaseVideo.pause();
+        showcaseVideo.className = "showcase-image showcase-video";
       }
       function celebrate(venda, transacao, afterAlert) {
         document.querySelector("#flash-number").textContent = venda.numero;
