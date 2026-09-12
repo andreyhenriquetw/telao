@@ -397,7 +397,7 @@
           return JSON.parse(text);
         } catch {
           throw new Error(
-            "O servidor em execucao ainda e antigo. Pare-o com Ctrl+C e execute npm start novamente.",
+            `A API retornou uma resposta inválida (${response.status}). Atualize a publicação do servidor.`,
           );
         }
       }
@@ -498,19 +498,16 @@
         modalSave.disabled = true;
         modalMessage.textContent = "Salvando...";
         try {
-          const response = await fetch(
-            `/api/camarote/${selectedCamaroteId}/venda`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                numero: modalBoothInput.value,
-                nomeCliente: modalCustomerInput.value,
-                valor: modalValue.value,
-                descricao: document.querySelector("#modal-description").value,
-              }),
-            },
-          );
+          const response = await fetch("/api/venda", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              camaroteNumero: modalBoothInput.value,
+              nomeCliente: modalCustomerInput.value,
+              valor: modalValue.value,
+              descricao: document.querySelector("#modal-description").value,
+            }),
+          });
           const result = await readJson(response);
           if (!response.ok) throw new Error(result.error);
           closeSaleModal();
