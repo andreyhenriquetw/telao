@@ -846,7 +846,7 @@
         let firstRound = true;
         while (currentRun === showcaseRun) {
           if (!firstRound)
-            await new Promise((resolve) => setTimeout(resolve, 20000));
+            await new Promise((resolve) => setTimeout(resolve, 30000));
           if (currentRun !== showcaseRun) return;
           firstRound = false;
           showcase.classList.remove("hidden");
