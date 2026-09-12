@@ -342,6 +342,9 @@
       .showcase-image-contained {
         object-fit: contain;
       }
+      .showcase-image-stretched {
+        object-fit: fill;
+      }
       .showcase-image.is-visible {
         opacity: 1;
         transform: none;
@@ -698,9 +701,14 @@
           source: "/008.jpeg",
           duration: 17000,
           type: "image",
+          stretch: true,
+        },
+        {
+          source: "/010.png",
+          duration: 16000,
+          type: "image",
           contain: true,
         },
-        { source: "/010.png", duration: 16000, type: "image" },
       ];
       let currentRanking = [];
       let showcaseStarted = false;
@@ -806,7 +814,7 @@
             const inactiveMedia =
               media.type === "video" ? showcaseImage : showcaseVideo;
             inactiveMedia.className = "showcase-image";
-            activeMedia.className = `showcase-image${media.contain ? " showcase-image-contained" : ""}`;
+            activeMedia.className = `showcase-image${media.contain ? " showcase-image-contained" : ""}${media.stretch ? " showcase-image-stretched" : ""}`;
             if (media.type === "video") {
               showcaseVideo.src = media.source;
               showcaseVideo.currentTime = 0;
