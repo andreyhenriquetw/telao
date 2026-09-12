@@ -111,6 +111,25 @@ app.patch("/api/camarote/:id", async (req, res) => {
   }
 });
 
+app.patch("/api/camarote/:id/total", async (req, res) => {
+  const totalGasto = parseValor(req.body.total);
+  if (!Number.isFinite(totalGasto) || totalGasto < 0) {
+    return res.status(400).json({ error: "Informe um valor total válido." });
+  }
+  try {
+    const camarote = await prisma.camarote.update({
+      where: { id: req.params.id },
+      data: { totalGasto },
+      select: rankingSelect,
+    });
+    io.emit("RANKING_ATUALIZADO");
+    res.json(camarote);
+  } catch (error) {
+    console.error("Erro ao editar valor total:", error);
+    res.status(503).json({ error: databaseError(error) });
+  }
+});
+
 app.patch("/api/transacao/:id", async (req, res) => {
   const valor = parseValor(req.body.valor);
   if (!Number.isFinite(valor) || valor <= 0) {
