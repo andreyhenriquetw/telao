@@ -20,6 +20,11 @@
         --blue: #1d63ff;
         --violet: #8c19ff;
       }
+      @property --border-angle {
+        syntax: "<angle>";
+        inherits: false;
+        initial-value: 0turn;
+      }
       * {
         box-sizing: border-box;
       }
@@ -101,6 +106,278 @@
           0 0 14px #f4c54266,
           inset 0 0 14px #f4c54222;
         clip-path: polygon(1% 0, 99% 0, 100% 50%, 99% 100%, 1% 100%, 0 50%);
+      }
+      #ranking {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .podium {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr);
+        align-items: end;
+        gap: clamp(0.5rem, 1.6vw, 1.5rem);
+        padding: 0 2.5% 0.75rem;
+      }
+      .podium-card {
+        position: relative;
+        min-width: 0;
+        min-height: clamp(12rem, 22vh, 18rem);
+        overflow: hidden;
+        border: 1px solid #d4a62c;
+        background: linear-gradient(180deg, #17130de8, #030405f2);
+        box-shadow:
+          0 0 14px #d4a62c55,
+          inset 0 0 18px #f4c5421c;
+        clip-path: polygon(4% 0, 96% 0, 100% 9%, 100% 100%, 0 100%, 0 9%);
+        animation: rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      }
+      .podium-card::after {
+        content: "";
+        position: absolute;
+        right: 8%;
+        bottom: 0;
+        left: 8%;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #f4c542, transparent);
+        box-shadow: 0 0 12px #f4c542;
+      }
+      .podium-card:nth-child(1) {
+        animation-delay: 0.08s;
+      }
+      .podium-card:nth-child(2) {
+        animation-delay: 0.02s;
+      }
+      .podium-card:nth-child(3) {
+        animation-delay: 0.14s;
+      }
+      .podium-card.podium-1 {
+        z-index: 2;
+        transform: translateY(-0.5rem);
+        border-color: #ffe27a;
+        box-shadow:
+          0 0 18px #ffd21d99,
+          0 0 36px #ff970044,
+          inset 0 0 24px #ffdc3e2e;
+      }
+      .podium-card.podium-1::before {
+        content: "";
+        position: absolute;
+        z-index: 4;
+        inset: 0;
+        padding: 3px;
+        background: conic-gradient(
+          from var(--border-angle),
+          transparent 0deg 218deg,
+          #9a5b0800 230deg,
+          #ffb30055 244deg,
+          #ffd21dcc 258deg,
+          #fff3a8 270deg,
+          #ffffff 280deg,
+          #fff3a8 290deg,
+          #ffd21dcc 302deg,
+          #ffb30055 318deg,
+          #9a5b0800 336deg,
+          transparent 350deg 360deg
+        );
+        -webkit-mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        mask-composite: exclude;
+        filter: drop-shadow(0 0 4px #fff0a0) drop-shadow(0 0 12px #ffb300aa);
+        pointer-events: none;
+        animation: goldBorderOrbit 6s linear infinite;
+      }
+      .podium-card.overtake {
+        animation: podiumOvertake 1.8s ease-in-out both;
+      }
+      .podium-card.overtake .podium-crown,
+      .podium-card.overtake .podium-rank {
+        filter: brightness(1.18) saturate(1.12);
+      }
+      .podium-crown {
+        position: relative;
+        isolation: isolate;
+        display: grid;
+        place-items: center;
+        min-height: clamp(6.5rem, 13vh, 12rem);
+        padding-top: 1.25rem;
+        color: #fff8a0;
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: clamp(2.5rem, 5vw, 5.5rem);
+        font-weight: 900;
+        line-height: 1;
+        text-shadow:
+          0 3px 0 #633300,
+          0 0 10px #fff7ad,
+          0 0 24px #ffd21d;
+        background:
+          radial-gradient(
+            circle at 20% 48%,
+            #fff 0 1%,
+            #6cefff 1.8%,
+            transparent 3.2%
+          ),
+          radial-gradient(
+            circle at 80% 48%,
+            #fff 0 1%,
+            #6cefff 1.8%,
+            transparent 3.2%
+          ),
+          linear-gradient(180deg, #fff9a9 0%, transparent 13%),
+          linear-gradient(
+            115deg,
+            #fff8b0 0%,
+            #d8890d 24%,
+            #ffe87a 48%,
+            #bd6b08 72%,
+            #4a2204 100%
+          );
+        border: 2px solid #fff4a0;
+        border-bottom: 0;
+        clip-path: polygon(
+          3% 100%,
+          0 27%,
+          15% 7%,
+          31% 32%,
+          50% 0,
+          69% 32%,
+          85% 7%,
+          100% 27%,
+          97% 100%
+        );
+      }
+      .podium-crown::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        right: 2%;
+        bottom: 0;
+        left: 2%;
+        height: 27%;
+        background:
+          linear-gradient(90deg, #6f3504, transparent 12% 88%, #6f3504),
+          linear-gradient(180deg, #fff0a0, #c7760b 35%, #592802 100%);
+        border: 2px solid #fff6b0;
+        box-shadow:
+          inset 0 3px 5px #fffbc799,
+          0 0 14px #ffbd2e;
+        clip-path: polygon(2% 0, 98% 0, 100% 18%, 96% 100%, 4% 100%, 0 18%);
+      }
+      .podium-crown::after {
+        content: "";
+        position: absolute;
+        z-index: 3;
+        top: 8%;
+        left: 50%;
+        width: 0.24em;
+        height: 0.24em;
+        background: radial-gradient(
+          circle at 35% 30%,
+          #fff,
+          #69efff 35%,
+          #147ca0 70%
+        );
+        border: 2px solid #d9ffff;
+        border-radius: 50%;
+        box-shadow:
+          0 0 8px #6cefff,
+          0 0 14px #ffd42a;
+        transform: translate(-50%, -20%);
+      }
+      .podium-crown {
+        text-align: center;
+      }
+      .crown-number {
+        position: relative;
+        z-index: 2;
+        display: block;
+        transform: translateY(0.35rem);
+        color: #fffdf0;
+        font-size: 1.12em;
+        text-shadow:
+          0 3px 0 #4a2104,
+          0 0 5px #fff,
+          0 0 18px #ffd42a;
+      }
+      .podium-rank {
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-height: clamp(4rem, 7vh, 6.5rem);
+        color: #f8f4df;
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: clamp(2rem, 3.6vw, 4rem);
+        font-weight: 900;
+        line-height: 1;
+        text-shadow:
+          0 2px 0 #000,
+          0 0 12px currentColor;
+        background: linear-gradient(145deg, #4b4b46, #111313 65%);
+        border-bottom: 1px solid #f4c542;
+      }
+      .podium-2 .podium-rank {
+        background: linear-gradient(145deg, #f7ffff, #71939a 38%, #15272c 75%);
+        border-color: #d9ffff;
+        color: #f7ffff;
+        text-shadow:
+          0 2px 0 #18333a,
+          0 0 14px #a9f4ff;
+      }
+      .podium-3 .podium-rank {
+        color: #ffc27c;
+        background: linear-gradient(145deg, #ffc37a, #9b4e29 38%, #29130d 75%);
+        border-color: #ffd28c;
+        text-shadow:
+          0 2px 0 #5e2412,
+          0 0 14px #ff9a5d;
+      }
+      .podium-details {
+        display: grid;
+        gap: 0.22rem;
+        padding: 0.85rem clamp(0.5rem, 1.2vw, 1.25rem) 1rem;
+        text-align: center;
+      }
+      .podium-table,
+      .podium-client {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #fff;
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: clamp(1.4rem, 2.5vw, 2.8rem);
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+      .podium-table.is-fitted {
+        text-overflow: clip;
+      }
+      .podium-client {
+        color: #f6f1d9;
+        font-family: Manrope, sans-serif;
+        font-size: clamp(0.8rem, 1.25vw, 1.3rem);
+        font-weight: 800;
+        text-shadow: 0 0 8px #fff8;
+      }
+      .podium-value {
+        color: #ffe36b;
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: clamp(1.7rem, 3.1vw, 3.5rem);
+        font-weight: 900;
+        text-shadow:
+          0 0 10px #ffb300,
+          0 2px 0 #7b3a00;
+        border-top: 1px solid #f4c54266;
+        padding-top: 0.25rem;
+      }
+      .ranking-list {
+        display: grid;
+        gap: 0.75rem;
       }
       .rank-row {
         position: relative;
@@ -208,7 +485,7 @@
         max-height: 82vh;
         object-fit: contain;
         object-position: bottom center;
-        filter: drop-shadow(0 0 16px #2d64ff) drop-shadow(0 0 34px #7c1cff);
+        filter: drop-shadow(0 0 16px #ffd21d) drop-shadow(0 0 34px #ff9d00aa);
         pointer-events: none;
       }
       .ranking-panel {
@@ -238,6 +515,13 @@
         }
         .ranking-panel {
           width: 100%;
+        }
+        .podium {
+          gap: 0.35rem;
+          padding-inline: 0;
+        }
+        .podium-details {
+          padding-inline: 0.25rem;
         }
       }
       .rank-row {
@@ -278,6 +562,34 @@
         to {
           opacity: 1;
           transform: none;
+        }
+      }
+      @keyframes goldBorderOrbit {
+        from {
+          --border-angle: 0turn;
+        }
+        to {
+          --border-angle: 1turn;
+        }
+      }
+      @keyframes podiumOvertake {
+        0%,
+        100% {
+          box-shadow:
+            0 0 14px #d4a62c55,
+            inset 0 0 18px #f4c5421c;
+        }
+        35% {
+          box-shadow:
+            0 0 20px #fff0a0,
+            0 0 48px #ffd21daa,
+            inset 0 0 26px #ffe66e66;
+        }
+        65% {
+          box-shadow:
+            0 0 12px #ffd21dcc,
+            0 0 30px #ff970088,
+            inset 0 0 20px #ffdc3e44;
         }
       }
       .rank-row.reordering {
@@ -440,6 +752,27 @@
         opacity: 0;
         animation: confettiFall var(--duration) var(--delay) linear infinite;
       }
+      #rank-confetti {
+        overflow: hidden;
+        z-index: 70;
+      }
+      .rank-confetti-piece {
+        position: absolute;
+        top: 24%;
+        left: var(--x);
+        width: var(--size);
+        height: calc(var(--size) * 1.8);
+        background: var(--color);
+        box-shadow: 0 0 10px var(--color);
+        opacity: 0;
+        animation: rankConfettiFall var(--duration) var(--delay) ease-out both;
+      }
+      .rank-confetti-piece:nth-child(3n) {
+        border-radius: 50%;
+      }
+      .rank-confetti-piece:nth-child(3n + 1) {
+        transform: rotate(28deg);
+      }
       .confetti:nth-child(3n) {
         border-radius: 50%;
       }
@@ -477,6 +810,71 @@
           -34px -58px 0 -2px var(--color);
         animation: fireworkBurst 1.8s var(--delay) ease-out infinite;
       }
+      .rank-burst {
+        position: absolute;
+        left: var(--x);
+        top: var(--y);
+        width: 1px;
+        height: 1px;
+        z-index: 2;
+      }
+      .rank-burst::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 2px;
+        height: 36vh;
+        background: linear-gradient(to bottom, var(--color), transparent);
+        box-shadow: 0 0 8px var(--color);
+        transform-origin: top center;
+        transform: translateX(-50%) scaleY(0);
+        animation: rocketTrail 0.7s var(--burst-delay) ease-out both;
+      }
+      .rank-burst::after {
+        content: "";
+        position: absolute;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow:
+          0 0 12px 4px var(--color),
+          0 0 28px var(--color);
+        transform: translate(-50%, -50%);
+        animation: burstCore 1.6s calc(var(--burst-delay) + 0.62s) ease-out both;
+      }
+      .rank-spark {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 3px;
+        height: var(--distance);
+        border-radius: 999px;
+        background: linear-gradient(
+          to top,
+          transparent,
+          #fff 35%,
+          var(--color)
+        );
+        box-shadow: 0 0 7px var(--color);
+        transform-origin: 50% 100%;
+        transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(0.05);
+        animation: burstSpark 1.6s calc(var(--burst-delay) + 0.62s) ease-out
+          both;
+      }
+      .rank-spark::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 0 8px var(--color);
+        transform: translate(-50%, -50%);
+      }
       @keyframes celebrationPulse {
         0%,
         100% {
@@ -499,6 +897,19 @@
         100% {
           opacity: 0.9;
           transform: translate3d(var(--drift), 115vh, 0) rotate(720deg);
+        }
+      }
+      @keyframes rankConfettiFall {
+        0% {
+          opacity: 0;
+          transform: translate3d(0, 0, 0) rotate(0deg) scale(0.5);
+        }
+        12% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: translate3d(var(--drift), 64vh, 0) rotate(540deg) scale(1);
         }
       }
       @keyframes fireworkCore {
@@ -532,6 +943,55 @@
         100% {
           opacity: 0;
           transform: scale(1.25);
+        }
+      }
+      @keyframes burstCore {
+        0%,
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.2);
+        }
+        18% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1.15);
+        }
+        55% {
+          opacity: 0.85;
+          transform: translate(-50%, -50%) scale(0.7);
+        }
+      }
+      @keyframes rocketTrail {
+        0% {
+          opacity: 0;
+          transform: translateX(-50%) scaleY(0);
+        }
+        15% {
+          opacity: 1;
+        }
+        75% {
+          opacity: 0.9;
+          transform: translateX(-50%) scaleY(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translateX(-50%) scaleY(0.7);
+        }
+      }
+      @keyframes burstSpark {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(0.05);
+        }
+        18% {
+          opacity: 1;
+        }
+        68% {
+          opacity: 0.9;
+          transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -100%) rotate(var(--angle)) scaleY(0.72);
         }
       }
       @keyframes flashIn {
@@ -581,6 +1041,34 @@
         .ranking-panel #ranking {
           gap: 0.25rem;
         }
+        .podium {
+          gap: 0.5rem;
+          padding-bottom: 0.25rem;
+        }
+        .podium-crown {
+          min-height: 3rem;
+          font-size: 2.8rem;
+        }
+        .podium-rank {
+          min-height: 2.5rem;
+          font-size: 2.4rem;
+        }
+        .podium-details {
+          gap: 0;
+          padding: 0.2rem 0.35rem 0.35rem;
+        }
+        .podium-table {
+          font-size: 1.25rem;
+        }
+        .podium-client {
+          font-size: 0.65rem;
+        }
+        .podium-value {
+          font-size: 1.45rem;
+        }
+        .ranking-list {
+          gap: 0.25rem;
+        }
         .rank-row {
           min-height: 2.1rem;
           gap: 1rem;
@@ -622,6 +1110,10 @@
   </head>
   <body>
     <div class="scanlines fixed inset-0 z-50"></div>
+    <div
+      id="rank-confetti"
+      class="fixed inset-0 z-[60] pointer-events-none"
+    ></div>
     <main
       class="stage mx-auto flex min-h-screen max-w-[1800px] flex-col px-8 py-5 md:px-12 md:py-7"
     >
@@ -641,12 +1133,6 @@
       </header>
       <img class="rabbit" src="/coelho2.png" alt="Coelho da boate" />
       <section class="ranking-panel flex-1 py-3 md:py-5">
-        <div
-          class="column-head mb-2 grid grid-cols-[clamp(56px,8vw,112px)_minmax(100px,1fr)_minmax(0,2fr)_minmax(130px,1fr)] items-center gap-4 px-5 py-2 text-center condensed text-xl font-bold uppercase md:gap-8 md:px-8 md:text-3xl"
-        >
-          <span>Posição</span><span>Mesa</span><span>Cliente</span
-          ><span>Valor</span>
-        </div>
         <div id="ranking" class="grid gap-3"></div>
         <div id="empty" class="hidden py-28 text-center">
           <p class="condensed text-5xl font-bold uppercase text-white/20">
@@ -722,6 +1208,7 @@
         })}`;
       const ranking = document.querySelector("#ranking");
       const confettiLayer = document.querySelector("#confetti-layer");
+      const rankConfettiLayer = document.querySelector("#rank-confetti");
       const flashVideo = document.querySelector("#flash-video");
       const showcase = document.querySelector("#showcase");
       const showcaseImage = showcase.querySelector(".showcase-image");
@@ -758,6 +1245,7 @@
       let showcaseStartTimer = null;
       let flashTimer = null;
       let flashRun = 0;
+      let rankConfettiTimer = null;
       let rankingSnapshot = new Map();
       let lastAlertKey = "";
       function launchCelebration() {
@@ -775,6 +1263,53 @@
         });
         confettiLayer.replaceChildren(...pieces);
       }
+      function launchOvertakeConfetti() {
+        clearTimeout(rankConfettiTimer);
+        const colors = ["#ffd42a", "#fff4a0", "#ffb300", "#ffffff", "#4ce8ff"];
+        const fireworks = [
+          ["7%", "39%", "#ffb300", "0.05s"],
+          ["18%", "30%", "#ffd42a", "0s"],
+          ["31%", "18%", "#4ce8ff", "0.5s"],
+          ["50%", "19%", "#ffffff", "0.35s"],
+          ["69%", "18%", "#ffd42a", "0.8s"],
+          ["82%", "32%", "#4ce8ff", "0.7s"],
+          ["93%", "39%", "#ffb300", "1.05s"],
+        ].map(([x, y, color, delay]) => {
+          const burst = document.createElement("div");
+          burst.className = "rank-burst";
+          burst.style.setProperty("--x", x);
+          burst.style.setProperty("--y", y);
+          burst.style.setProperty("--color", color);
+          burst.style.setProperty("--burst-delay", delay);
+          for (let sparkIndex = 0; sparkIndex < 18; sparkIndex += 1) {
+            const spark = document.createElement("i");
+            spark.className = "rank-spark";
+            spark.style.setProperty("--angle", `${sparkIndex * 20}deg`);
+            spark.style.setProperty(
+              "--distance",
+              `${28 + (sparkIndex % 4) * 9}px`,
+            );
+            spark.style.setProperty("--color", color);
+            burst.appendChild(spark);
+          }
+          return burst;
+        });
+        const pieces = Array.from({ length: 54 }, (_, index) => {
+          const piece = document.createElement("i");
+          piece.className = "rank-confetti-piece";
+          piece.style.setProperty("--x", `${12 + ((index * 31) % 76)}%`);
+          piece.style.setProperty("--drift", `${((index * 43) % 180) - 90}px`);
+          piece.style.setProperty("--size", `${5 + (index % 4) * 2}px`);
+          piece.style.setProperty("--duration", `${3.4 + (index % 7) * 0.28}s`);
+          piece.style.setProperty("--delay", `${(index % 9) * 0.07}s`);
+          piece.style.setProperty("--color", colors[index % colors.length]);
+          return piece;
+        });
+        rankConfettiLayer.replaceChildren(...fireworks, ...pieces);
+        rankConfettiTimer = setTimeout(() => {
+          rankConfettiLayer.replaceChildren();
+        }, 6200);
+      }
       function esc(v) {
         return String(v).replace(
           /[&<>'"]/g,
@@ -788,7 +1323,23 @@
             })[c],
         );
       }
+      function fitPodiumNames() {
+        document.querySelectorAll(".podium-table").forEach((element) => {
+          element.style.fontSize = "";
+          element.classList.remove("is-fitted");
+          if (element.scrollWidth <= element.clientWidth) return;
+          let fontSize = parseFloat(getComputedStyle(element).fontSize);
+          while (element.scrollWidth > element.clientWidth && fontSize > 14) {
+            fontSize -= 1;
+            element.style.fontSize = `${fontSize}px`;
+          }
+          element.classList.add("is-fitted");
+        });
+      }
       function render(rows = [], animate = false) {
+        const previousPositionById = new Map(
+          currentRanking.slice(0, 6).map((item, index) => [item.id, index + 1]),
+        );
         const previousPositions = new Map(
           [...ranking.querySelectorAll("[data-ranking-id]")].map((element) => [
             element.dataset.rankingId,
@@ -799,12 +1350,45 @@
         document
           .querySelector("#empty")
           .classList.toggle("hidden", rows.length > 0);
-        ranking.innerHTML = rows
-          .slice(0, 6)
-          .map((item, index) => {
-            return `<article data-ranking-id="${item.id}" class="rank-row rank-${index + 1} grid grid-cols-[clamp(56px,8vw,112px)_minmax(100px,1fr)_minmax(0,2fr)_minmax(130px,1fr)] items-center gap-4 text-center md:gap-8"><span class="rank-medal condensed">${index + 1}</span><span class="row-label min-w-0 truncate text-center condensed text-2xl font-black uppercase md:text-5xl">${esc(item.numero)}</span><span class="row-label min-w-0 truncate text-center text-base font-bold uppercase md:text-3xl">${esc(item.nomeCliente)}</span><span class="row-value min-w-0 whitespace-nowrap text-center condensed text-2xl font-black md:text-5xl">${money(item.totalGasto)}</span></article>`;
+        const visibleRows = rows.slice(0, 6);
+        const podiumRows = visibleRows.slice(0, 3);
+        const continuationRows = visibleRows.slice(3);
+        const overtakeIds = new Set(
+          animate
+            ? visibleRows
+                .filter((item, index) => {
+                  const previousPosition = previousPositionById.get(item.id);
+                  const currentPosition = index + 1;
+                  return (
+                    previousPosition &&
+                    previousPosition <= 3 &&
+                    currentPosition <= 3 &&
+                    previousPosition !== currentPosition
+                  );
+                })
+                .map((item) => item.id)
+            : [],
+        );
+        const podiumCard = (item, position) =>
+          `<article data-ranking-id="${item.id}" class="podium-card podium-${position}"><div class="${position === 1 ? "podium-crown" : "podium-rank"}">${position === 1 ? `<span class="crown-number">${position}</span>` : position}</div><div class="podium-details"><span class="podium-table">${esc(item.nomeCliente)}</span><span class="podium-client">${esc(item.numero)}</span><span class="podium-value">${money(item.totalGasto)}</span></div></article>`;
+        ranking.innerHTML = `${
+          podiumRows.length
+            ? `<div class="podium">${[
+                podiumRows[1],
+                podiumRows[0],
+                podiumRows[2],
+              ]
+                .filter(Boolean)
+                .map((item) => podiumCard(item, podiumRows.indexOf(item) + 1))
+                .join("")}</div>`
+            : ""
+        }<div class="ranking-list">${continuationRows
+          .map((item, offset) => {
+            const position = offset + 4;
+            return `<article data-ranking-id="${item.id}" class="rank-row rank-${position} grid grid-cols-[clamp(56px,8vw,112px)_minmax(100px,1fr)_minmax(0,2fr)_minmax(130px,1fr)] items-center gap-4 text-center md:gap-8"><span class="rank-medal condensed">${position}</span><span class="row-label min-w-0 truncate text-center condensed text-2xl font-black uppercase md:text-5xl">${esc(item.numero)}</span><span class="row-label min-w-0 truncate text-center text-base font-bold uppercase md:text-3xl">${esc(item.nomeCliente)}</span><span class="row-value min-w-0 whitespace-nowrap text-center condensed text-2xl font-black md:text-5xl">${money(item.totalGasto)}</span></article>`;
           })
-          .join("");
+          .join("")}</div>`;
+        requestAnimationFrame(fitPodiumNames);
         if (animate) {
           const movedRows = [...ranking.querySelectorAll("[data-ranking-id]")]
             .map((element) => ({
@@ -829,10 +1413,21 @@
                   "transform 2.6s cubic-bezier(0.22, 0.8, 0.2, 1)";
                 element.style.transform = "translateY(0)";
               });
+              ranking
+                .querySelectorAll(".podium-card[data-ranking-id]")
+                .forEach((element) => {
+                  if (overtakeIds.has(element.dataset.rankingId)) {
+                    element.classList.add("overtake");
+                  }
+                });
+              if (overtakeIds.size > 0) launchOvertakeConfetti();
             });
           });
         }
       }
+      window.addEventListener("resize", () =>
+        requestAnimationFrame(fitPodiumNames),
+      );
       async function load() {
         try {
           const response = await fetch("/api/camarotes", {
@@ -956,37 +1551,23 @@
         flashVideo.currentTime = 0;
         flash.classList.remove("hidden");
         flash.classList.add("flex");
+        let flashFinished = false;
         const finishFlash = () => {
-          if (currentFlashRun !== flashRun) return;
+          if (flashFinished || currentFlashRun !== flashRun) return;
+          flashFinished = true;
+          clearTimeout(flashTimer);
           flash.classList.add("hidden");
           flash.classList.remove("flex");
           flashVideo.pause();
           confettiLayer.replaceChildren();
-          afterAlert();
+          requestAnimationFrame(() => {
+            requestAnimationFrame(afterAlert);
+          });
         };
         flashVideo.onended = finishFlash;
+        flashVideo.onerror = finishFlash;
+        flashTimer = setTimeout(finishFlash, 5000);
         flashVideo.play().catch(() => {});
-        try {
-          const context = new AudioContext();
-          const oscillator = context.createOscillator();
-          const gain = context.createGain();
-          oscillator.frequency.setValueAtTime(440, context.currentTime);
-          oscillator.frequency.exponentialRampToValueAtTime(
-            880,
-            context.currentTime + 0.25,
-          );
-          gain.gain.setValueAtTime(0.08, context.currentTime);
-          gain.gain.exponentialRampToValueAtTime(
-            0.001,
-            context.currentTime + 1,
-          );
-          oscillator.connect(gain).connect(context.destination);
-          oscillator.start();
-          oscillator.stop(context.currentTime + 1);
-        } catch (error) {
-          console.warn("Audio do Flash alert indisponível:", error);
-        }
-        flashTimer = null;
       }
       async function handleNewSale(data) {
         const alertKey = `${data.venda.id}:${data.venda.totalGasto}`;
