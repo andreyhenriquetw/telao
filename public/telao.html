@@ -28,7 +28,7 @@
         min-height: 100vh;
         background:
           linear-gradient(#08051f66, #08051f66),
-          url("/fundo.jpg") center / cover,
+          url("/fundo.png") center / cover,
           radial-gradient(ellipse at 78% 20%, #40209e 0, transparent 30%),
           radial-gradient(ellipse at 18% 80%, #102d9b 0, transparent 35%),
           linear-gradient(115deg, #07051a 0%, #111052 48%, #080523 100%);
@@ -95,24 +95,24 @@
       }
       .column-head {
         color: #fff;
-        background: linear-gradient(90deg, #2b16a9, #4113d2 50%, #28108f);
-        border: 1px solid #7138ff;
+        background: linear-gradient(90deg, #050607e8, #17130be8 50%, #050607e8);
+        border: 1px solid #f4c542;
         box-shadow:
-          0 0 16px #401dff99,
-          inset 0 0 12px #8e45ff66;
+          0 0 14px #f4c54266,
+          inset 0 0 14px #f4c54222;
         clip-path: polygon(1% 0, 99% 0, 100% 50%, 99% 100%, 1% 100%, 0 50%);
       }
       .rank-row {
         position: relative;
         min-height: clamp(58px, 8.6vh, 92px);
         overflow: hidden;
-        border: 2px solid #7224ff;
+        border: 1px solid #d4a62c;
         border-radius: 18px;
-        background: linear-gradient(90deg, #13107eeb, #1524c9dc 45%, #201179e8);
+        background: linear-gradient(90deg, #030405e8, #131313d9 45%, #050607e8);
         box-shadow:
-          0 0 8px #6e20ff,
-          0 0 22px #2f3dff88,
-          inset 0 0 14px #6d5dff66;
+          0 0 8px #d4a62c55,
+          0 0 24px #000b,
+          inset 0 0 16px #f4c5421c;
         clip-path: polygon(
           1.2% 0,
           98.8% 0,
@@ -124,28 +124,28 @@
         padding: 0.3rem 2.2rem 0.3rem 1.6rem;
       }
       .rank-row.rank-1 {
-        border-color: #ffd21d;
-        background: linear-gradient(90deg, #8c3b00f0, #592000dd 42%, #2f126d);
+        border-color: #ffe27a;
+        background: linear-gradient(90deg, #171006f2, #2a1c08e8 42%, #090a0be8);
         box-shadow:
-          0 0 9px #ffd21d,
-          0 0 28px #ff970088,
-          inset 0 0 18px #ffdc3e66;
+          0 0 10px #ffd21daa,
+          0 0 28px #ff970055,
+          inset 0 0 18px #ffdc3e33;
       }
       .rank-row.rank-2 {
-        border-color: #8eeaff;
-        background: linear-gradient(90deg, #1047c9f5, #176fe8ee 45%, #3120a8f0);
+        border-color: #f4c542;
+        background: linear-gradient(90deg, #04090bf2, #0b171be8 45%, #05090ae8);
         box-shadow:
-          0 0 10px #62dcff,
-          0 0 28px #238dffcc,
-          0 0 48px #315dff88,
-          inset 0 0 18px #72ddff99;
+          0 0 8px #f4c54299,
+          0 0 28px #000b,
+          inset 0 0 18px #53dce133;
       }
       .rank-row.rank-3 {
-        border-color: #ff832a;
+        border-color: #e7b64c;
+        background: linear-gradient(90deg, #120b08f2, #24140de8 45%, #08090ae8);
         box-shadow:
-          0 0 9px #ff5d23,
-          0 0 25px #ff3a7788,
-          inset 0 0 15px #ff9a3d66;
+          0 0 8px #e7a63c88,
+          0 0 25px #000b,
+          inset 0 0 15px #ff9a3d33;
       }
       .rank-medal {
         display: grid;
@@ -157,15 +157,18 @@
         font-size: clamp(2.25rem, 4.2vw, 4.4rem);
         line-height: 1;
         text-shadow:
-          0 2px 0 #25106e,
+          0 2px 0 #191006,
           0 0 12px currentColor;
-        background: linear-gradient(145deg, #8c40ff, #4010ca);
-        border: 2px solid #c378ff;
+        background: linear-gradient(145deg, #3d3a2b, #100f0b);
+        border: 2px solid #f4c542;
+        box-shadow:
+          0 0 10px #f4c54299,
+          inset 0 0 12px #ffe78633;
         clip-path: polygon(15% 0, 85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%);
       }
       .rank-1 .rank-medal {
         color: #fff8a0;
-        background: linear-gradient(145deg, #ffdf39, #b94700);
+        background: linear-gradient(145deg, #ffe66c, #a85c08);
         border-color: #fff4a0;
       }
       .rank-2 .rank-medal {
@@ -174,8 +177,8 @@
           145deg,
           #eaffff 0%,
           #69dfff 30%,
-          #2071e8 72%,
-          #2437a8 100%
+          #167e96 72%,
+          #102f39 100%
         );
         border-color: #eaffff;
         box-shadow:
@@ -188,12 +191,12 @@
       }
       .row-label {
         color: #fff;
-        text-shadow: 0 0 8px #ffffff55;
+        text-shadow: 0 0 8px #ffffff44;
       }
       .row-value {
-        color: #fff200;
+        color: #ffe36b;
         text-shadow:
-          0 0 10px #ff9b00,
+          0 0 10px #ffb300,
           0 2px 0 #7b3a00;
       }
       .rabbit {
@@ -295,6 +298,16 @@
         background: radial-gradient(circle, #47300c 0, #08090b 70%);
         animation: flashIn 0.45s ease-out;
       }
+      .flash-video {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.65;
+        pointer-events: none;
+      }
       #showcase {
         overflow: hidden;
         background:
@@ -378,6 +391,32 @@
         align-items: center;
         text-align: center;
         transform: translateY(-2vh);
+        position: relative;
+        z-index: 3;
+      }
+      #flash-number,
+      #flash-client,
+      #flash-value {
+        text-shadow:
+          0 3px 0 #090909,
+          0 0 10px #000,
+          0 0 24px #000;
+      }
+      #flash-number {
+        color: #fff9d6;
+        -webkit-text-stroke: 2px #090909;
+      }
+      #flash-client {
+        color: #fff;
+        font-weight: 900;
+        -webkit-text-stroke: 1px #090909;
+      }
+      #flash-value {
+        background: #090909b8;
+        color: #fff200;
+        text-shadow:
+          0 2px 0 #090909,
+          0 0 12px #000;
       }
       .confetti-layer,
       .fireworks {
@@ -600,7 +639,7 @@
           </h1>
         </div>
       </header>
-      <img class="rabbit" src="/coelho1.png" alt="Coelho da boate" />
+      <img class="rabbit" src="/coelho2.png" alt="Coelho da boate" />
       <section class="ranking-panel flex-1 py-3 md:py-5">
         <div
           class="column-head mb-2 grid grid-cols-[clamp(56px,8vw,112px)_minmax(100px,1fr)_minmax(0,2fr)_minmax(130px,1fr)] items-center gap-4 px-5 py-2 text-center condensed text-xl font-bold uppercase md:gap-8 md:px-8 md:text-3xl"
@@ -637,6 +676,13 @@
       id="flash"
       class="fixed inset-0 z-[80] hidden flex-col items-center justify-center text-center"
     >
+      <video
+        id="flash-video"
+        class="flash-video"
+        src="/skol1.mp4"
+        muted
+        playsinline
+      ></video>
       <div class="flash-line absolute left-0 top-0"></div>
       <div class="fireworks">
         <i
@@ -654,11 +700,6 @@
       </div>
       <div id="confetti-layer" class="confetti-layer"></div>
       <div class="flash-content">
-        <p
-          class="condensed mb-4 text-3xl font-bold uppercase tracking-[.4em] text-[#f6bd45]"
-        >
-          Flash alert
-        </p>
         <div
           class="condensed max-w-[90vw] text-7xl font-black uppercase leading-none md:text-[10rem]"
           id="flash-number"
@@ -681,6 +722,7 @@
         })}`;
       const ranking = document.querySelector("#ranking");
       const confettiLayer = document.querySelector("#confetti-layer");
+      const flashVideo = document.querySelector("#flash-video");
       const showcase = document.querySelector("#showcase");
       const showcaseImage = showcase.querySelector(".showcase-image");
       const showcaseVideo = showcase.querySelector(".showcase-video");
@@ -906,13 +948,24 @@
         clearTimeout(flashTimer);
         document.querySelector("#flash-number").textContent = venda.numero;
         document.querySelector("#flash-client").textContent = venda.nomeCliente;
-        document.querySelector("#flash-value").textContent = money(
+        document.querySelector("#flash-value").textContent = `+ ${money(
           transacao.valor,
-        );
+        )}`;
         const flash = document.querySelector("#flash");
         launchCelebration();
+        flashVideo.currentTime = 0;
         flash.classList.remove("hidden");
         flash.classList.add("flex");
+        const finishFlash = () => {
+          if (currentFlashRun !== flashRun) return;
+          flash.classList.add("hidden");
+          flash.classList.remove("flex");
+          flashVideo.pause();
+          confettiLayer.replaceChildren();
+          afterAlert();
+        };
+        flashVideo.onended = finishFlash;
+        flashVideo.play().catch(() => {});
         try {
           const context = new AudioContext();
           const oscillator = context.createOscillator();
@@ -933,13 +986,7 @@
         } catch (error) {
           console.warn("Audio do Flash alert indisponível:", error);
         }
-        flashTimer = setTimeout(() => {
-          if (currentFlashRun !== flashRun) return;
-          flash.classList.add("hidden");
-          flash.classList.remove("flex");
-          confettiLayer.replaceChildren();
-          afterAlert();
-        }, 5000);
+        flashTimer = null;
       }
       async function handleNewSale(data) {
         const alertKey = `${data.venda.id}:${data.venda.totalGasto}`;
