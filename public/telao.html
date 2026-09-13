@@ -199,6 +199,9 @@
       .podium-card.overtake .podium-rank {
         filter: brightness(1.18) saturate(1.12);
       }
+      .rank-row.overtake {
+        animation: rankRowOvertake 1.8s ease-in-out both;
+      }
       .podium-crown {
         position: relative;
         isolation: isolate;
@@ -586,6 +589,30 @@
             inset 0 0 26px #ffe66e66;
         }
         65% {
+          box-shadow:
+            0 0 12px #ffd21dcc,
+            0 0 30px #ff970088,
+            inset 0 0 20px #ffdc3e44;
+        }
+      }
+      @keyframes rankRowOvertake {
+        0%,
+        100% {
+          filter: brightness(1);
+          box-shadow:
+            0 0 8px #f4c54255,
+            0 0 28px #000b,
+            inset 0 0 18px #53dce133;
+        }
+        35% {
+          filter: brightness(1.18) saturate(1.12);
+          box-shadow:
+            0 0 20px #fff0a0,
+            0 0 48px #ffd21daa,
+            inset 0 0 26px #ffe66e66;
+        }
+        65% {
+          filter: brightness(1.08) saturate(1.08);
           box-shadow:
             0 0 12px #ffd21dcc,
             0 0 30px #ff970088,
@@ -1338,7 +1365,7 @@
       }
       function render(rows = [], animate = false) {
         const previousPositionById = new Map(
-          currentRanking.slice(0, 6).map((item, index) => [item.id, index + 1]),
+          currentRanking.map((item, index) => [item.id, index + 1]),
         );
         const previousPositions = new Map(
           [...ranking.querySelectorAll("[data-ranking-id]")].map((element) => [
@@ -1355,15 +1382,12 @@
         const continuationRows = visibleRows.slice(3);
         const overtakeIds = new Set(
           animate
-            ? visibleRows
+            ? rows
                 .filter((item, index) => {
                   const previousPosition = previousPositionById.get(item.id);
                   const currentPosition = index + 1;
                   return (
-                    previousPosition &&
-                    previousPosition <= 3 &&
-                    currentPosition <= 3 &&
-                    previousPosition !== currentPosition
+                    previousPosition && previousPosition !== currentPosition
                   );
                 })
                 .map((item) => item.id)
@@ -1414,7 +1438,7 @@
                 element.style.transform = "translateY(0)";
               });
               ranking
-                .querySelectorAll(".podium-card[data-ranking-id]")
+                .querySelectorAll("[data-ranking-id]")
                 .forEach((element) => {
                   if (overtakeIds.has(element.dataset.rankingId)) {
                     element.classList.add("overtake");
