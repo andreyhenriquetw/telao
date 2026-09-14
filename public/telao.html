@@ -94,9 +94,31 @@
       }
       .title-glow {
         text-shadow:
+          0 2px 0 #05030d,
+          2px 0 0 #05030d,
+          -2px 0 0 #05030d,
           0 0 12px #ffcf31aa,
           0 4px 0 #7b2600,
           0 0 32px #ff6a00;
+      }
+      .brand-header {
+        position: relative;
+        isolation: isolate;
+        width: fit-content;
+        padding: 0.35rem 0.75rem 0.55rem;
+      }
+      .brand-header::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        inset: 0 -1.25rem;
+        background: linear-gradient(
+          90deg,
+          #05030de8,
+          #05030db8 72%,
+          transparent
+        );
+        filter: blur(7px);
       }
       .column-head {
         color: #fff;
@@ -1129,7 +1151,7 @@
       class="stage mx-auto flex min-h-screen max-w-[1800px] flex-col px-8 py-5 md:px-12 md:py-7"
     >
       <header class="flex items-end justify-between pb-4">
-        <div>
+        <div class="brand-header">
           <p
             class="condensed text-base font-bold uppercase tracking-[.32em] text-[#ffe66e] md:text-xl"
           >
@@ -1176,7 +1198,7 @@
       <video
         id="flash-video"
         class="flash-video"
-        src="/skol1.mp4"
+        src="/skola.mp4"
         muted
         playsinline
       ></video>
@@ -1574,7 +1596,7 @@
         };
         flashVideo.onended = finishFlash;
         flashVideo.onerror = finishFlash;
-        flashTimer = setTimeout(finishFlash, 5000);
+        flashTimer = setTimeout(finishFlash, 10000);
         flashVideo.play().catch(() => {});
       }
       async function handleNewSale(data) {
