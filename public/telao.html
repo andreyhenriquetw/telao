@@ -181,7 +181,8 @@
       }
       .podium-card.podium-1 {
         z-index: 2;
-        transform: translateY(-0.5rem);
+        min-height: clamp(17rem, 32vh, 25rem);
+        top: -2.5rem;
         border-color: #ffe27a;
         box-shadow:
           0 0 18px #ffd21d99,
@@ -190,27 +191,28 @@
       }
       .podium-card.podium-2,
       .podium-card.podium-3 {
-        min-height: clamp(9.5rem, 17vh, 14rem);
+        min-height: clamp(8.5rem, 15vh, 12rem);
+        top: 0.5rem;
       }
       .podium-card.podium-1::before {
         content: "";
         position: absolute;
         z-index: 4;
         inset: 0;
-        padding: 3px;
+        padding: 4px;
         background: conic-gradient(
           from var(--border-angle),
-          transparent 0deg 218deg,
-          #9a5b0800 230deg,
-          #ffb30055 244deg,
-          #ffd21dcc 258deg,
-          #fff3a8 270deg,
+          transparent 0deg 190deg,
+          #ffb30022 210deg,
+          #ffb300aa 230deg,
+          #ffd21d 248deg,
+          #fff3a8 265deg,
           #ffffff 280deg,
-          #fff3a8 290deg,
-          #ffd21dcc 302deg,
-          #ffb30055 318deg,
-          #9a5b0800 336deg,
-          transparent 350deg 360deg
+          #fff3a8 295deg,
+          #ffd21d 312deg,
+          #ffb300aa 330deg,
+          #ffb30022 345deg,
+          transparent 355deg 360deg
         );
         -webkit-mask:
           linear-gradient(#000 0 0) content-box,
@@ -220,9 +222,20 @@
           linear-gradient(#000 0 0) content-box,
           linear-gradient(#000 0 0);
         mask-composite: exclude;
-        filter: drop-shadow(0 0 4px #fff0a0) drop-shadow(0 0 12px #ffb300aa);
+        filter: drop-shadow(0 0 6px #fff0a0) drop-shadow(0 0 18px #ffb300dd)
+          drop-shadow(0 0 30px #ffd21d99);
         pointer-events: none;
-        animation: goldBorderOrbit 6s linear infinite;
+        animation: goldBorderOrbit 4s linear infinite;
+      }
+      .podium-card.podium-1 .podium-position {
+        min-height: clamp(4rem, 7vh, 6.5rem);
+        font-size: clamp(3rem, 5vw, 5.5rem);
+        text-shadow:
+          0 3px 0 #05030d,
+          2px 0 0 #05030d,
+          -2px 0 0 #05030d,
+          0 0 8px #fff,
+          0 0 20px #ffd42a;
       }
       .podium-card.overtake {
         animation: podiumOvertake 1.8s ease-in-out both;
@@ -261,6 +274,14 @@
       .podium-crown::after {
         content: none;
       }
+      .podium-slot:has(.podium-card.podium-1) .podium-crown {
+        top: -2.75rem;
+        min-height: clamp(7.5rem, 15vh, 14rem);
+        filter: drop-shadow(0 2px 0 #05030d) drop-shadow(2px 0 0 #05030d)
+          drop-shadow(-2px 0 0 #05030d) drop-shadow(0 0 8px #fff4a0)
+          drop-shadow(0 0 18px #ffd21d) drop-shadow(0 0 34px #ff9d00cc)
+          brightness(1.12) saturate(1.18);
+      }
       .podium-crown {
         text-align: center;
       }
@@ -295,12 +316,18 @@
       .podium-2 .podium-position {
         color: #f7ffff;
         text-shadow:
+          0 3px 0 #05030d,
+          2px 0 0 #05030d,
+          -2px 0 0 #05030d,
           0 3px 0 #18333a,
           0 0 14px #a9f4ff;
       }
       .podium-3 .podium-position {
         color: #ffc27c;
         text-shadow:
+          0 3px 0 #05030d,
+          2px 0 0 #05030d,
+          -2px 0 0 #05030d,
           0 3px 0 #5e2412,
           0 0 14px #ff9a5d;
       }
@@ -316,7 +343,7 @@
         width: 100%;
         min-height: clamp(4rem, 7vh, 6.5rem);
         margin-bottom: -0.35rem;
-        background: url("/coroa.png") center / contain no-repeat;
+        background: none;
         border: 0;
         color: #f8f4df;
         font-family: "Barlow Condensed", sans-serif;
@@ -328,14 +355,22 @@
           0 0 14px #ffd21d;
       }
       .podium-2 .podium-rank {
-        min-height: clamp(5.5rem, 10vh, 9rem);
+        min-height: clamp(4.5rem, 8vh, 7.5rem);
         color: #f7ffff;
         text-shadow:
           0 2px 0 #5b2600,
           0 0 14px #fff;
       }
+      .podium-rank-image {
+        display: block;
+        width: 100%;
+        height: clamp(4.5rem, 8vh, 7.5rem);
+        margin-bottom: -0.35rem;
+        object-fit: contain;
+        object-position: center;
+      }
       .podium-3 .podium-rank {
-        min-height: clamp(5.5rem, 10vh, 9rem);
+        min-height: clamp(4.5rem, 8vh, 7.5rem);
         color: #ffc27c;
         text-shadow:
           0 2px 0 #5e2412,
@@ -375,6 +410,9 @@
         font-size: clamp(1.7rem, 3.1vw, 3.5rem);
         font-weight: 900;
         text-shadow:
+          0 2px 0 #05030d,
+          2px 0 0 #05030d,
+          -2px 0 0 #05030d,
           0 0 10px #ffb300,
           0 2px 0 #7b3a00;
         border-top: 1px solid #f4c54266;
@@ -439,6 +477,9 @@
         font-size: clamp(2.25rem, 4.2vw, 4.4rem);
         line-height: 1;
         text-shadow:
+          0 2px 0 #05030d,
+          2px 0 0 #05030d,
+          -2px 0 0 #05030d,
           0 2px 0 #191006,
           0 0 12px currentColor;
         background: linear-gradient(145deg, #3d3a2b, #100f0b);
@@ -478,6 +519,9 @@
       .row-value {
         color: #ffe36b;
         text-shadow:
+          0 2px 0 #05030d,
+          2px 0 0 #05030d,
+          -2px 0 0 #05030d,
           0 0 10px #ffb300,
           0 2px 0 #7b3a00;
       }
@@ -490,7 +534,9 @@
         max-height: 82vh;
         object-fit: contain;
         object-position: bottom center;
-        filter: drop-shadow(0 0 16px #ffd21d) drop-shadow(0 0 34px #ff9d00aa);
+        filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000)
+          drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000)
+          drop-shadow(0 0 16px #ffd21d) drop-shadow(0 0 34px #ff9d00aa);
         pointer-events: none;
       }
       .ranking-panel {
@@ -1198,7 +1244,7 @@
       <video
         id="flash-video"
         class="flash-video"
-        src="/skola.mp4"
+        src="/skola11.mp4"
         muted
         playsinline
       ></video>
@@ -1400,7 +1446,7 @@
             : [],
         );
         const podiumCard = (item, position) =>
-          `<div class="podium-slot"><div class="${position === 1 ? "podium-crown" : "podium-rank"}"></div><article data-ranking-id="${item.id}" class="podium-card podium-${position}"><div class="podium-position">${position}</div><div class="podium-details"><span class="podium-table">${esc(item.nomeCliente)}</span><span class="podium-client">${esc(item.numero)}</span><span class="podium-value">${money(item.totalGasto)}</span></div></article></div>`;
+          `<div class="podium-slot">${position === 1 ? '<div class="podium-crown"></div>' : position === 2 ? '<img class="podium-rank-image" src="/prata.png" alt="" />' : position === 3 ? '<img class="podium-rank-image" src="/bronze.png" alt="" />' : '<div class="podium-rank"></div>'}<article data-ranking-id="${item.id}" class="podium-card podium-${position}"><div class="podium-position">${position}</div><div class="podium-details"><span class="podium-table">${esc(item.nomeCliente)}</span><span class="podium-client">${esc(item.numero)}</span><span class="podium-value">${money(item.totalGasto)}</span></div></article></div>`;
         ranking.innerHTML = `${
           podiumRows.length
             ? `<div class="podium">${[
@@ -1571,8 +1617,8 @@
       function celebrate(venda, transacao, afterAlert) {
         const currentFlashRun = ++flashRun;
         clearTimeout(flashTimer);
-        document.querySelector("#flash-number").textContent = venda.numero;
-        document.querySelector("#flash-client").textContent = venda.nomeCliente;
+        document.querySelector("#flash-number").textContent = venda.nomeCliente;
+        document.querySelector("#flash-client").textContent = venda.numero;
         document.querySelector("#flash-value").textContent = `+ ${money(
           transacao.valor,
         )}`;
