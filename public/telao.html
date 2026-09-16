@@ -572,6 +572,12 @@
           drop-shadow(0 0 16px #ffd21d) drop-shadow(0 0 34px #ff9d00aa);
         pointer-events: none;
       }
+      #rabbit-video {
+        display: none;
+      }
+      #rabbit-canvas {
+        display: none;
+      }
       .ranking-panel {
         position: relative;
         z-index: 1;
@@ -1243,7 +1249,26 @@
           </h1>
         </div>
       </header>
-      <img class="rabbit" src="/coelho2.png" alt="Coelho da boate" />
+      <img
+        id="rabbit-image"
+        class="rabbit"
+        src="/coelho2.png"
+        alt="Coelho da boate"
+      />
+      <video
+        id="rabbit-video"
+        data-src="/0916.mp4"
+        muted
+        loop
+        playsinline
+        preload="none"
+        aria-hidden="true"
+      ></video>
+      <canvas
+        class="rabbit"
+        id="rabbit-canvas"
+        aria-label="Coelho da boate"
+      ></canvas>
       <section class="ranking-panel flex-1 py-3 md:py-5">
         <div id="ranking" class="grid gap-3"></div>
         <div id="empty" class="hidden py-28 text-center">
@@ -1322,6 +1347,9 @@
       const confettiLayer = document.querySelector("#confetti-layer");
       const rankConfettiLayer = document.querySelector("#rank-confetti");
       const flashVideo = document.querySelector("#flash-video");
+      const rabbitImage = document.querySelector("#rabbit-image");
+      const rabbitVideo = document.querySelector("#rabbit-video");
+      const rabbitCanvas = document.querySelector("#rabbit-canvas");
       const showcase = document.querySelector("#showcase");
       const showcaseImage = showcase.querySelector(".showcase-image");
       const showcaseVideo = showcase.querySelector(".showcase-video");
@@ -1360,6 +1388,80 @@
       let rankConfettiTimer = null;
       let rankingSnapshot = new Map();
       let lastAlertKey = "";
+      let rabbitFrameRequest = 0;
+      let rabbitRendering = false;
+      function renderRabbitFrame() {
+        if (rabbitVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+          if (
+            rabbitCanvas.width !== rabbitVideo.videoWidth ||
+            rabbitCanvas.height !== rabbitVideo.videoHeight
+          ) {
+            rabbitCanvas.width = rabbitVideo.videoWidth;
+            rabbitCanvas.height = rabbitVideo.videoHeight;
+          }
+          const context = rabbitCanvas.getContext("2d", {
+            willReadFrequently: true,
+          });
+          context.drawImage(
+            rabbitVideo,
+            0,
+            0,
+            rabbitCanvas.width,
+            rabbitCanvas.height,
+          );
+          const frame = context.getImageData(
+            0,
+            0,
+            rabbitCanvas.width,
+            rabbitCanvas.height,
+          );
+          for (let index = 0; index < frame.data.length; index += 4) {
+            const red = frame.data[index];
+            const green = frame.data[index + 1];
+            const blue = frame.data[index + 2];
+            const brightness = Math.max(red, green, blue);
+            if (brightness < 30) {
+              frame.data[index + 3] = 0;
+            } else if (brightness < 58) {
+              frame.data[index + 3] = Math.round(
+                ((brightness - 30) / 28) * 255,
+              );
+            }
+          }
+          context.putImageData(frame, 0, 0);
+        }
+        if (rabbitRendering) {
+          rabbitFrameRequest = requestAnimationFrame(renderRabbitFrame);
+        }
+      }
+      function startRabbitVideo() {
+        rabbitVideo.play().catch(() => {});
+        if (rabbitRendering) return;
+        rabbitRendering = true;
+        rabbitImage.style.display = "none";
+        rabbitCanvas.style.display = "block";
+        cancelAnimationFrame(rabbitFrameRequest);
+        renderRabbitFrame();
+      }
+      rabbitVideo.addEventListener("loadedmetadata", startRabbitVideo);
+      rabbitVideo.addEventListener("canplay", startRabbitVideo);
+      function activateRabbitVideo() {
+        if (!rabbitVideo.src) {
+          rabbitVideo.src = rabbitVideo.dataset.src;
+          rabbitVideo.load();
+        } else {
+          rabbitVideo.currentTime = 0;
+          startRabbitVideo();
+        }
+      }
+      function restoreRabbitImage() {
+        rabbitRendering = false;
+        cancelAnimationFrame(rabbitFrameRequest);
+        rabbitFrameRequest = 0;
+        rabbitVideo.pause();
+        rabbitCanvas.style.display = "none";
+        rabbitImage.style.display = "block";
+      }
       function launchCelebration() {
         const colors = ["#ffd42a", "#4ce8ff", "#ff4fc5", "#ffffff", "#8d61ff"];
         const pieces = Array.from({ length: 44 }, (_, index) => {
@@ -1589,6 +1691,7 @@
       async function startShowcase() {
         if (showcaseStarted) return;
         showcaseStarted = true;
+        restoreRabbitImage();
         const currentRun = ++showcaseRun;
         let firstRound = true;
         while (currentRun === showcaseRun) {
@@ -1669,6 +1772,7 @@
           flash.classList.remove("flex");
           flashVideo.pause();
           confettiLayer.replaceChildren();
+          activateRabbitVideo();
           requestAnimationFrame(() => {
             requestAnimationFrame(afterAlert);
           });
