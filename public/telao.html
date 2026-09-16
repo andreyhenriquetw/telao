@@ -181,7 +181,7 @@
       }
       .podium-card.podium-1 {
         z-index: 2;
-        min-height: clamp(17rem, 32vh, 25rem);
+        min-height: clamp(17.25rem, 32.5vh, 25.5rem);
         top: -2.5rem;
         border-color: #ffe27a;
         box-shadow:
@@ -191,8 +191,20 @@
       }
       .podium-card.podium-2,
       .podium-card.podium-3 {
-        min-height: clamp(8.5rem, 15vh, 12rem);
+        min-height: clamp(8.25rem, 14.5vh, 11.5rem);
         top: 0.5rem;
+      }
+      .podium-card.podium-2 {
+        border-color: #d9e2ec;
+        box-shadow:
+          0 0 14px #b8c4d055,
+          inset 0 0 18px #e8f0f81c;
+      }
+      .podium-card.podium-3 {
+        border-color: #cd7f32;
+        box-shadow:
+          0 0 14px #cd7f3255,
+          inset 0 0 18px #e6a15a1c;
       }
       .podium-card.podium-1::before {
         content: "";
@@ -418,6 +430,27 @@
         border-top: 1px solid #f4c54266;
         padding-top: 0.25rem;
       }
+      .podium-card.podium-1 .podium-table {
+        font-size: clamp(1.55rem, 2.8vw, 3.2rem);
+      }
+      .podium-card.podium-1 .podium-client {
+        font-size: clamp(0.88rem, 1.35vw, 1.4rem);
+      }
+      .podium-card.podium-1 .podium-value {
+        font-size: clamp(1.85rem, 3.3vw, 3.8rem);
+      }
+      .podium-card.podium-2 .podium-table,
+      .podium-card.podium-3 .podium-table {
+        font-size: clamp(1.25rem, 2.35vw, 2.6rem);
+      }
+      .podium-card.podium-2 .podium-client,
+      .podium-card.podium-3 .podium-client {
+        font-size: clamp(0.75rem, 1.15vw, 1.2rem);
+      }
+      .podium-card.podium-2 .podium-value,
+      .podium-card.podium-3 .podium-value {
+        font-size: clamp(1.55rem, 2.9vw, 3.25rem);
+      }
       .ranking-list {
         display: grid;
         gap: 0.75rem;
@@ -452,18 +485,18 @@
           inset 0 0 18px #ffdc3e33;
       }
       .rank-row.rank-2 {
-        border-color: #f4c542;
+        border-color: #d9e2ec;
         background: linear-gradient(90deg, #04090bf2, #0b171be8 45%, #05090ae8);
         box-shadow:
-          0 0 8px #f4c54299,
+          0 0 8px #b8c4d099,
           0 0 28px #000b,
           inset 0 0 18px #53dce133;
       }
       .rank-row.rank-3 {
-        border-color: #e7b64c;
+        border-color: #cd7f32;
         background: linear-gradient(90deg, #120b08f2, #24140de8 45%, #08090ae8);
         box-shadow:
-          0 0 8px #e7a63c88,
+          0 0 8px #cd7f3288,
           0 0 25px #000b,
           inset 0 0 15px #ff9a3d33;
       }
