@@ -152,23 +152,33 @@
         min-width: 0;
         min-height: clamp(12rem, 22vh, 18rem);
         overflow: hidden;
-        border: 1px solid #d4a62c;
-        background: linear-gradient(180deg, #17130de8, #030405f2);
+        border: 3px solid #54dcffcc;
+        border-radius: 18px 18px 7px 7px;
+        background: linear-gradient(135deg, #111318d9 0%, #08090bd9 48%, #020304e8 100%);
         box-shadow:
-          0 0 14px #d4a62c55,
-          inset 0 0 18px #f4c5421c;
-        clip-path: polygon(4% 0, 96% 0, 100% 9%, 100% 100%, 0 100%, 0 9%);
+          0 0 22px #20b8e677,
+          0 18px 30px #000c,
+          inset 0 0 28px #42d9ff20,
+          inset 0 2px 0 #ffffff38;
         animation: rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
       }
-      .podium-card::after {
+      .podium-card::before {
         content: "";
         position: absolute;
-        right: 8%;
-        bottom: 0;
-        left: 8%;
-        height: 3px;
-        background: linear-gradient(90deg, transparent, #f4c542, transparent);
-        box-shadow: 0 0 12px #f4c542;
+        z-index: 4;
+        inset: 0;
+        border: 2px solid #a8f2ffaa;
+        border-radius: inherit;
+        background:
+          linear-gradient(90deg, #71e8ff, transparent 18% 82%, #71e8ff) top /
+            100% 1px no-repeat,
+          linear-gradient(90deg, #71e8ff, transparent 18% 82%, #71e8ff) bottom /
+            100% 1px no-repeat;
+        opacity: 0.92;
+        pointer-events: none;
+      }
+      .podium-card::after {
+        content: none;
       }
       .podium-card:nth-child(1) {
         animation-delay: 0.08s;
@@ -183,11 +193,14 @@
         z-index: 2;
         min-height: clamp(17.25rem, 32.5vh, 25.5rem);
         top: -2.5rem;
-        border-color: #ffe27a;
+        border-width: 3px;
+        border-color: #ffe36e;
+        background: linear-gradient(135deg, #151515e0 0%, #090a0ce3 48%, #020304ed 100%);
         box-shadow:
-          0 0 18px #ffd21d99,
-          0 0 36px #ff970044,
-          inset 0 0 24px #ffdc3e2e;
+          0 0 28px #ffd21dcc,
+          0 18px 42px #000d,
+          inset 0 0 34px #ffdc3e3d,
+          inset 0 2px 0 #fff6b866;
       }
       .podium-card.podium-2,
       .podium-card.podium-3 {
@@ -195,23 +208,34 @@
         top: 0.5rem;
       }
       .podium-card.podium-2 {
-        border-color: #d9e2ec;
+        border-width: 3px;
+        border-color: #a9f4ff88;
+        background: linear-gradient(135deg, #111318c9 0%, #08090bcc 48%, #020304df 100%);
         box-shadow:
-          0 0 14px #b8c4d055,
-          inset 0 0 18px #e8f0f81c;
+          0 0 10px #53dce144,
+          0 14px 28px #000d,
+          inset 0 0 18px #53dce114;
       }
       .podium-card.podium-3 {
-        border-color: #cd7f32;
+        border-width: 3px;
+        border-color: #ff9a5d88;
+        background: linear-gradient(135deg, #151515c9 0%, #090a0bcc 48%, #020304df 100%);
         box-shadow:
-          0 0 14px #cd7f3255,
-          inset 0 0 18px #e6a15a1c;
+          0 0 10px #ff8b4d44,
+          0 14px 28px #000d,
+          inset 0 0 18px #ff9a5d14;
+      }
+      .podium-card.podium-2::before,
+      .podium-card.podium-3::before {
+        border-color: #a8f2ff55;
+        opacity: 0.38;
+      }
+      .podium-card.podium-2::after,
+      .podium-card.podium-3::after {
+        opacity: 0.38;
+        box-shadow: 0 0 8px #20d9ff66;
       }
       .podium-card.podium-1::before {
-        content: "";
-        position: absolute;
-        z-index: 4;
-        inset: 0;
-        padding: 4px;
         background: conic-gradient(
           from var(--border-angle),
           transparent 0deg 190deg,
@@ -226,6 +250,8 @@
           #ffb30022 345deg,
           transparent 355deg 360deg
         );
+        border: 0;
+        border-radius: inherit;
         -webkit-mask:
           linear-gradient(#000 0 0) content-box,
           linear-gradient(#000 0 0);
@@ -234,6 +260,7 @@
           linear-gradient(#000 0 0) content-box,
           linear-gradient(#000 0 0);
         mask-composite: exclude;
+        padding: 3px;
         filter: drop-shadow(0 0 6px #fff0a0) drop-shadow(0 0 18px #ffb300dd)
           drop-shadow(0 0 30px #ffd21d99);
         pointer-events: none;
@@ -287,7 +314,7 @@
         content: none;
       }
       .podium-slot:has(.podium-card.podium-1) .podium-crown {
-        top: -2.75rem;
+        top: -3rem;
         min-height: clamp(7.5rem, 15vh, 14rem);
         filter: drop-shadow(0 2px 0 #05030d) drop-shadow(2px 0 0 #05030d)
           drop-shadow(-2px 0 0 #05030d) drop-shadow(0 0 8px #fff4a0)
