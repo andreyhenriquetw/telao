@@ -6,6 +6,7 @@ const http = require("http");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const { del, list, put } = require("@vercel/blob");
 const { Server } = require("socket.io");
 const { PrismaClient } = require("@prisma/client");
 
@@ -39,18 +40,23 @@ const publicDirectory = path.join(__dirname, "public");
 app.use(express.static(publicDirectory));
 
 const uploadDirectory = path.join(publicDirectory, "uploads");
-fs.mkdirSync(uploadDirectory, { recursive: true });
+const useBlobStorage = Boolean(
+  process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL,
+);
+if (!useBlobStorage) fs.mkdirSync(uploadDirectory, { recursive: true });
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: uploadDirectory,
-    filename: (req, file, callback) => {
-      const extension = path.extname(file.originalname).toLowerCase();
-      callback(
-        null,
-        `${Date.now()}-${Math.random().toString(36).slice(2)}${extension}`,
-      );
-    },
-  }),
+  storage: useBlobStorage
+    ? multer.memoryStorage()
+    : multer.diskStorage({
+        destination: uploadDirectory,
+        filename: (req, file, callback) => {
+          const extension = path.extname(file.originalname).toLowerCase();
+          callback(
+            null,
+            `${Date.now()}-${Math.random().toString(36).slice(2)}${extension}`,
+          );
+        },
+      }),
   limits: { fileSize: 150 * 1024 * 1024 },
   fileFilter: (req, file, callback) => {
     callback(null, /^(image|video)\//.test(file.mimetype));
@@ -63,6 +69,55 @@ function mediaType(file) {
 
 function mediaUrl(file) {
   return `/uploads/${file.filename}`;
+}
+
+async function storeFile(file) {
+  if (!useBlobStorage) {
+    return {
+      filename: file.filename,
+      source: mediaUrl(file),
+      size: file.size,
+      updatedAt: new Date(),
+    };
+  }
+  const extension = path.extname(file.originalname).toLowerCase();
+  const blob = await put(
+    `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}${extension}`,
+    file.buffer,
+    { access: "public", contentType: file.mimetype },
+  );
+  return {
+    filename: path.basename(blob.pathname),
+    source: blob.url,
+    size: file.size,
+    updatedAt: new Date(),
+  };
+}
+
+async function storedFiles() {
+  if (useBlobStorage) {
+    const result = await list();
+    return result.blobs.map((blob) => ({
+      filename: path.basename(blob.pathname),
+      source: blob.url,
+      type: uploadedFileType(blob.pathname),
+      size: blob.size,
+      updatedAt: blob.uploadedAt,
+    }));
+  }
+  const filenames = await fs.promises.readdir(uploadDirectory);
+  return Promise.all(
+    filenames.map(async (filename) => {
+      const stats = await fs.promises.stat(path.join(uploadDirectory, filename));
+      return {
+        filename,
+        source: mediaUrl({ filename }),
+        type: uploadedFileType(filename),
+        size: stats.size,
+        updatedAt: stats.mtime,
+      };
+    }),
+  );
 }
 
 function uploadedFileType(filename) {
@@ -79,8 +134,8 @@ async function rememberAsset(source, role) {
 
 app.get("/api/uploads", async (req, res) => {
   try {
-    const [filenames, scenes, assets] = await Promise.all([
-      fs.promises.readdir(uploadDirectory),
+    const [stored, scenes, assets] = await Promise.all([
+      storedFiles(),
       prisma.slideMedia.findMany({
         select: { source: true, overlaySource: true },
       }),
@@ -113,31 +168,21 @@ app.get("/api/uploads", async (req, res) => {
         rememberAsset(source, "background"),
       ),
     );
-    const uploadFiles = await Promise.all(
-      filenames.map(async (filename) => {
-        const stats = await fs.promises.stat(
-          path.join(uploadDirectory, filename),
-        );
-        return {
-          filename,
-          source: mediaUrl({ filename }),
-          type: uploadedFileType(filename),
-          size: stats.size,
-          usedBy:
-            (mainUsage.get(`/uploads/${filename}`) || 0) +
-            (backgroundUsage.get(`/uploads/${filename}`) || 0),
-          mainUsedBy: mainUsage.get(`/uploads/${filename}`) || 0,
-          backgroundUsedBy:
-            backgroundUsage.get(`/uploads/${filename}`) ||
-            (backgroundSources.has(`/uploads/${filename}`) ? 1 : 0),
-          isBackground: backgroundSources.has(`/uploads/${filename}`),
-          managed: true,
-          updatedAt: stats.mtime,
-        };
-      }),
-    );
+    const storedSources = new Set(stored.map((file) => file.source));
+    const uploadFiles = stored.map((file) => ({
+      ...file,
+      usedBy:
+        (mainUsage.get(file.source) || 0) +
+        (backgroundUsage.get(file.source) || 0),
+      mainUsedBy: mainUsage.get(file.source) || 0,
+      backgroundUsedBy:
+        backgroundUsage.get(file.source) ||
+        (backgroundSources.has(file.source) ? 1 : 0),
+      isBackground: backgroundSources.has(file.source),
+      managed: true,
+    }));
     const librarySources = [...sceneSources].filter(
-      (source) => !source.startsWith("/uploads/"),
+      (source) => !storedSources.has(source),
     );
     const sceneFiles = await Promise.all(
       librarySources.map(async (source) => {
@@ -238,9 +283,18 @@ app.delete("/api/uploads/:filename", async (req, res) => {
           "Este arquivo ainda está sendo usado por uma cena. Remova a cena primeiro.",
       });
     }
-    const filePath = path.join(uploadDirectory, filename);
-    await fs.promises.unlink(filePath);
-    await prisma.slideAsset.deleteMany({ source: `/uploads/${filename}` });
+      const file = (await storedFiles()).find(
+        (storedFile) => storedFile.filename === filename,
+      );
+      if (!file) {
+        return res.status(404).json({ error: "Arquivo não encontrado." });
+      }
+      if (useBlobStorage) {
+        await del(file.source);
+      } else {
+        await fs.promises.unlink(path.join(uploadDirectory, filename));
+      }
+      await prisma.slideAsset.deleteMany({ source: file.source });
     res.status(204).end();
   } catch (error) {
     if (error.code === "ENOENT") {
@@ -304,6 +358,10 @@ app.post(
       });
     }
     try {
+      const storedMedia = await storeFile(mediaFile);
+      const storedOverlay = overlayFile
+        ? await storeFile(overlayFile)
+        : null;
       const last = await prisma.slideMedia.findFirst({
         orderBy: { position: "desc" },
       });
@@ -311,12 +369,12 @@ app.post(
         data: {
           position: (last?.position || 0) + 1,
           type: mediaType(mediaFile),
-          source: mediaUrl(mediaFile),
+          source: storedMedia.source,
           duration: Math.round(duration * 1000),
           fit: ["cover", "contain", "fill"].includes(req.body.fit)
             ? req.body.fit
             : "cover",
-          overlaySource: overlayFile ? mediaUrl(overlayFile) : null,
+          overlaySource: storedOverlay?.source || null,
           overlayType: overlayFile ? mediaType(overlayFile) : null,
         },
       });
@@ -347,7 +405,6 @@ app.patch("/api/slide/:id", async (req, res) => {
           : "cover",
       },
     });
-    await rememberAsset(mediaUrl(req.file), "background");
     io.emit("SLIDE_ATUALIZADO");
     res.json(media);
   } catch (error) {
@@ -366,10 +423,11 @@ app.post(
         .json({ error: "Escolha uma imagem ou vídeo para o background." });
     }
     try {
+      const storedOverlay = await storeFile(req.file);
       const media = await prisma.slideMedia.update({
         where: { id: req.params.id },
         data: {
-          overlaySource: mediaUrl(req.file),
+          overlaySource: storedOverlay.source,
           overlayType: mediaType(req.file),
         },
       });
