@@ -108,7 +108,9 @@ async function storedFiles() {
   const filenames = await fs.promises.readdir(uploadDirectory);
   return Promise.all(
     filenames.map(async (filename) => {
-      const stats = await fs.promises.stat(path.join(uploadDirectory, filename));
+      const stats = await fs.promises.stat(
+        path.join(uploadDirectory, filename),
+      );
       return {
         filename,
         source: mediaUrl({ filename }),
@@ -283,18 +285,18 @@ app.delete("/api/uploads/:filename", async (req, res) => {
           "Este arquivo ainda está sendo usado por uma cena. Remova a cena primeiro.",
       });
     }
-      const file = (await storedFiles()).find(
-        (storedFile) => storedFile.filename === filename,
-      );
-      if (!file) {
-        return res.status(404).json({ error: "Arquivo não encontrado." });
-      }
-      if (useBlobStorage) {
-        await del(file.source);
-      } else {
-        await fs.promises.unlink(path.join(uploadDirectory, filename));
-      }
-      await prisma.slideAsset.deleteMany({ source: file.source });
+    const file = (await storedFiles()).find(
+      (storedFile) => storedFile.filename === filename,
+    );
+    if (!file) {
+      return res.status(404).json({ error: "Arquivo não encontrado." });
+    }
+    if (useBlobStorage) {
+      await del(file.source);
+    } else {
+      await fs.promises.unlink(path.join(uploadDirectory, filename));
+    }
+    await prisma.slideAsset.deleteMany({ source: file.source });
     res.status(204).end();
   } catch (error) {
     if (error.code === "ENOENT") {
@@ -359,9 +361,7 @@ app.post(
     }
     try {
       const storedMedia = await storeFile(mediaFile);
-      const storedOverlay = overlayFile
-        ? await storeFile(overlayFile)
-        : null;
+      const storedOverlay = overlayFile ? await storeFile(overlayFile) : null;
       const last = await prisma.slideMedia.findFirst({
         orderBy: { position: "desc" },
       });
