@@ -206,9 +206,10 @@
           <div class="mb-6 flex items-center justify-between gap-4">
             <div>
               <p
+                id="ranking-label"
                 class="font-display text-sm uppercase tracking-[.25em] text-white/40"
               >
-                Top 10
+                Todas as mesas
               </p>
               <h2 class="font-display text-3xl font-bold uppercase">
                 Maiores gastadores
@@ -218,7 +219,7 @@
               id="all-button"
               class="rounded-lg border border-white/15 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white/60 transition hover:border-gold hover:text-gold"
             >
-              Ver todos
+              Ver top 10
             </button>
             <button
               id="reset-button"
@@ -435,7 +436,11 @@
         additionalSaleForm.reset();
         modalMessage.className = "min-h-5 text-center text-sm";
       }
-      async function load(url = "/api/ranking") {
+      async function load(
+        url = allButton.dataset.all === "true"
+          ? "/api/camarotes"
+          : "/api/ranking",
+      ) {
         try {
           const response = await fetch(url);
           const result = await readJson(response);
@@ -466,7 +471,7 @@
           });
           const result = await readJson(response);
           if (!response.ok) throw new Error(result.error);
-          render(result.ranking);
+          load();
           form.reset();
           message.textContent = "Venda enviada para o telão.";
           message.className = "min-h-5 text-center text-sm text-mint";
@@ -483,6 +488,9 @@
         allButton.dataset.all = String(!showingAll);
         allButton.textContent = showingAll ? "Ver todos" : "Ver top 10";
         load(showingAll ? "/api/ranking" : "/api/camarotes");
+        document.querySelector("#ranking-label").textContent = showingAll
+          ? "Top 10"
+          : "Todas as mesas";
       });
       body.addEventListener("click", (event) => {
         const row = event.target.closest("tr[data-camarote-id]");
@@ -512,7 +520,7 @@
           const result = await readJson(response);
           if (!response.ok) throw new Error(result.error);
           closeSaleModal();
-          render(result.ranking);
+          load();
           showToast("Combo salvo e enviado para o telão.");
         } catch (error) {
           modalMessage.textContent = error.message;
@@ -534,7 +542,7 @@
           );
           const result = await readJson(response);
           if (!response.ok) throw new Error(result.error);
-          render(await (await fetch("/api/ranking")).json());
+          load();
           document.querySelector("#modal-booth").textContent =
             `${result.numero} • Total atual: ${money(result.totalGasto)}`;
           modalTotal.value = Number(result.totalGasto)
@@ -565,7 +573,8 @@
         toast.classList.remove("hidden");
         setTimeout(() => toast.classList.add("hidden"), 3000);
       }
-      load();
+      allButton.dataset.all = "true";
+      load("/api/camarotes");
     </script>
   </body>
 </html>
