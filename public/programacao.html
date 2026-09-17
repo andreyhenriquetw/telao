@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Programação visual | Telão</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              display: ["Rajdhani", "sans-serif"],
+              sans: ["Manrope", "sans-serif"],
+            },
+            colors: { panel: "#11131a", gold: "#f3b744", mint: "#61f2c2" },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Rajdhani:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background:
+          radial-gradient(circle at 90% 0%, #163b3a 0, transparent 32%), #08090d;
+        color: #f7f3ea;
+        font-family: Manrope, sans-serif;
+      }
+      .grid-bg {
+        background-image:
+          linear-gradient(#ffffff06 1px, transparent 1px),
+          linear-gradient(90deg, #ffffff06 1px, transparent 1px);
+        background-size: 32px 32px;
+      }
+      .glow {
+        box-shadow:
+          0 0 0 1px #ffffff0d,
+          0 18px 60px #0008;
+      }
+      .input {
+        background: #0b0d12;
+        border: 1px solid #ffffff18;
+        outline: none;
+      }
+      .input:focus {
+        border-color: #f3b744;
+        box-shadow: 0 0 0 3px #f3b7441f;
+      }
+      .modal-backdrop {
+        background: rgb(0 0 0 / 75%);
+        backdrop-filter: blur(8px);
+      }
+      .slide-thumb {
+        aspect-ratio: 16 / 9;
+      }
+      .slide-thumb img,
+      .slide-thumb video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .library-thumb {
+        aspect-ratio: 16 / 9;
+      }
+      .library-thumb img,
+      .library-thumb video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      [data-slide-id][draggable="true"] {
+        cursor: grab;
+      }
+      [data-slide-id][draggable="true"]:active {
+        cursor: grabbing;
+      }
+      [data-slide-id].is-dragging {
+        opacity: 0.45;
+      }
+      [data-slide-id].is-drop-target {
+        border-color: #61f2c2;
+        box-shadow: 0 0 0 2px #61f2c233;
+      }
+      @keyframes slide {
+        from {
+          transform: translateY(20px);
+          opacity: 0;
+        }
+        to {
+          transform: none;
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen grid-bg">
+    <main class="mx-auto max-w-7xl p-5 md:p-10">
+      <header class="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p
+            class="mb-2 font-display text-sm font-bold uppercase tracking-[.35em] text-mint"
+          >
+            Administração do telão
+          </p>
+          <h1
+            class="font-display text-5xl font-bold uppercase leading-none md:text-7xl"
+          >
+            Programação visual
+          </h1>
+          <p class="mt-3 max-w-2xl text-sm text-white/45">
+            Organize as cenas, defina o tempo de cada mídia e aplique camadas de
+            fundo.
+          </p>
+        </div>
+        <nav class="flex flex-wrap gap-3">
+          <a
+            href="/admin.html"
+            class="rounded-full border border-white/15 px-5 py-3 text-sm font-bold transition hover:border-gold hover:text-gold"
+            >Voltar ao admin</a
+          >
+          <a
+            href="/telao.html"
+            target="_blank"
+            class="rounded-full border border-mint/30 px-5 py-3 text-sm font-bold text-mint transition hover:bg-mint/10"
+            >Abrir telão ↗</a
+          >
+        </nav>
+      </header>
+      <section class="glow rounded-2xl bg-panel p-6 md:p-8">
+        <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p
+              class="font-display text-sm uppercase tracking-[.25em] text-mint"
+            >
+              Programação visual
+            </p>
+            <h2 class="font-display text-3xl font-bold uppercase">
+              Cenas do telão
+            </h2>
+            <p class="mt-1 text-sm text-white/45">
+              Arraste as cenas para trocar a ordem.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <button
+              id="library-button"
+              type="button"
+              class="rounded-xl border border-white/15 px-5 py-3 font-display font-bold uppercase text-white/75 transition hover:border-mint hover:text-mint"
+            >
+              Biblioteca de uploads
+            </button>
+            <button
+              id="slide-add-button"
+              type="button"
+              class="rounded-xl bg-mint px-5 py-3 font-display font-bold uppercase text-black transition hover:brightness-110"
+            >
+              + Adicionar cena
+            </button>
+          </div>
+        </div>
+        <div id="slide-list" class="grid gap-3"></div>
+        <p
+          id="slide-empty"
+          class="hidden rounded-xl border border-dashed border-white/15 py-10 text-center text-white/35"
+        >
+          Nenhuma cena cadastrada.
+        </p>
+      </section>
+    </main>
+    <div
+      id="slide-modal"
+      class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto p-4"
+    >
+      <section
+        class="glow my-auto w-full max-w-2xl rounded-2xl bg-panel p-6 md:p-8"
+      >
+        <div class="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p
+              class="font-display text-sm uppercase tracking-[.25em] text-mint"
+            >
+              Editor de cena
+            </p>
+            <h2 class="font-display text-3xl font-bold uppercase">
+              Nova mídia
+            </h2>
+          </div>
+          <button
+            id="slide-close"
+            type="button"
+            class="text-2xl text-white/50 hover:text-white"
+            aria-label="Fechar"
+          >
+            &times;
+          </button>
+        </div>
+        <form id="slide-form" class="space-y-4">
+          <label class="block text-sm font-semibold text-white/70"
+            >Imagem ou vídeo principal<input
+              required
+              id="slide-media"
+              type="file"
+              accept="image/*,video/*"
+              class="input mt-2 w-full rounded-xl px-4 py-3 text-sm"
+          /></label>
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="block text-sm font-semibold text-white/70"
+              >Tempo na tela (segundos)<input
+                required
+                min="1"
+                step="1"
+                value="16"
+                id="slide-duration"
+                type="number"
+                class="input mt-2 w-full rounded-xl px-4 py-3"
+            /></label>
+            <label class="block text-sm font-semibold text-white/70"
+              >Enquadramento<select
+                id="slide-fit"
+                class="input mt-2 w-full rounded-xl px-4 py-3"
+              >
+                <option value="cover">Preencher tela</option>
+                <option value="contain">Mostrar inteira</option>
+                <option value="fill">Esticar</option>
+              </select></label
+            >
+          </div>
+          <label class="block text-sm font-semibold text-white/70"
+            >Background / camada sobre a cena
+            <span class="font-normal text-white/35">(opcional)</span
+            ><input
+              id="slide-overlay"
+              type="file"
+              accept="image/*,video/*"
+              class="input mt-2 w-full rounded-xl px-4 py-3 text-sm"
+          /></label>
+          <p id="slide-message" class="min-h-5 text-center text-sm"></p>
+          <button
+            id="slide-save"
+            class="w-full rounded-xl bg-gold px-5 py-4 font-display text-xl font-bold uppercase text-black transition hover:brightness-110 disabled:opacity-60"
+          >
+            Salvar cena
+          </button>
+        </form>
+      </section>
+    </div>
+    <div
+      id="library-modal"
+      class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto p-4"
+    >
+      <section
+        class="glow my-auto w-full max-w-5xl rounded-2xl bg-panel p-6 md:p-8"
+      >
+        <div class="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p
+              class="font-display text-sm uppercase tracking-[.25em] text-mint"
+            >
+              Arquivos enviados
+            </p>
+            <h2 class="font-display text-3xl font-bold uppercase">
+              Biblioteca de uploads
+            </h2>
+            <p class="mt-1 text-sm text-white/45">
+              Arquivos em uso ficam protegidos até a cena ser removida.
+            </p>
+          </div>
+          <button
+            id="library-close"
+            type="button"
+            class="text-2xl text-white/50 hover:text-white"
+            aria-label="Fechar"
+          >
+            &times;
+          </button>
+        </div>
+        <div
+          id="library-list"
+          class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        ></div>
+        <p
+          id="library-empty"
+          class="hidden rounded-xl border border-dashed border-white/15 py-12 text-center text-white/35"
+        >
+          Nenhum upload encontrado.
+        </p>
+      </section>
+    </div>
+    <div
+      id="background-scene-modal"
+      class="modal-backdrop fixed inset-0 z-[60] hidden items-center justify-center p-4"
+    >
+      <section class="glow w-full max-w-lg rounded-2xl bg-panel p-6 md:p-8">
+        <div class="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p
+              class="font-display text-sm uppercase tracking-[.25em] text-mint"
+            >
+              Aplicar background
+            </p>
+            <h2 class="font-display text-3xl font-bold uppercase">
+              Escolha a cena
+            </h2>
+          </div>
+          <button
+            id="background-scene-close"
+            type="button"
+            class="text-2xl text-white/50 hover:text-white"
+            aria-label="Fechar"
+          >
+            &times;
+          </button>
+        </div>
+        <form id="background-scene-form" class="space-y-4">
+          <p
+            id="background-scene-file"
+            class="truncate rounded-lg bg-black/30 px-4 py-3 text-sm text-white/55"
+          ></p>
+          <label class="block text-sm font-semibold text-white/70"
+            >Cena que receberá o background<select
+              id="background-scene-select"
+              required
+              class="input mt-2 w-full rounded-xl px-4 py-3"
+            ></select
+          ></label>
+          <p
+            id="background-scene-message"
+            class="min-h-5 text-center text-sm"
+          ></p>
+          <button
+            id="background-scene-save"
+            class="w-full rounded-xl bg-mint px-5 py-4 font-display text-xl font-bold uppercase text-black transition hover:brightness-110 disabled:opacity-60"
+          >
+            Aplicar nesta cena
+          </button>
+        </form>
+      </section>
+    </div>
+    <div
+      id="toast"
+      class="fixed bottom-6 right-6 z-[100] hidden rounded-xl border border-mint/30 bg-[#0c201b] px-5 py-4 text-sm font-bold text-mint"
+    ></div>
+    <script>
+      const slideList = document.querySelector("#slide-list");
+      const slideEmpty = document.querySelector("#slide-empty");
+      const slideModal = document.querySelector("#slide-modal");
+      const slideForm = document.querySelector("#slide-form");
+      const slideMessage = document.querySelector("#slide-message");
+      const libraryModal = document.querySelector("#library-modal");
+      const libraryList = document.querySelector("#library-list");
+      const libraryEmpty = document.querySelector("#library-empty");
+      const backgroundSceneModal = document.querySelector(
+        "#background-scene-modal",
+      );
+      const backgroundSceneForm = document.querySelector(
+        "#background-scene-form",
+      );
+      const backgroundSceneSelect = document.querySelector(
+        "#background-scene-select",
+      );
+      const backgroundSceneFile = document.querySelector(
+        "#background-scene-file",
+      );
+      const backgroundSceneMessage = document.querySelector(
+        "#background-scene-message",
+      );
+      let slideItems = [];
+      let selectedLibrarySource = "";
+      function escapeHtml(value) {
+        return String(value).replace(
+          /[&<>'"]/g,
+          (char) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              "'": "&#39;",
+              '"': "&quot;",
+            })[char],
+        );
+      }
+      async function readJson(response) {
+        const text = await response.text();
+        try {
+          return JSON.parse(text);
+        } catch {
+          throw new Error(
+            `A API retornou uma resposta inválida (${response.status}).`,
+          );
+        }
+      }
+      function showToast(text) {
+        const toast = document.querySelector("#toast");
+        toast.textContent = text;
+        toast.classList.remove("hidden");
+        setTimeout(() => toast.classList.add("hidden"), 3000);
+      }
+      function mediaPreview(item) {
+        return item.type === "video"
+          ? `<video src="${escapeHtml(item.source)}" muted preload="metadata"></video>`
+          : `<img src="${escapeHtml(item.source)}" alt="" />`;
+      }
+      function formatBytes(bytes) {
+        if (bytes < 1024 * 1024)
+          return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+        return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+      }
+      function libraryPreview(item) {
+        return item.type === "video"
+          ? `<video src="${escapeHtml(item.source)}" muted preload="metadata"></video>`
+          : `<img src="${escapeHtml(item.source)}" alt="" />`;
+      }
+      function renderLibraryCard(file) {
+        return `
+          <article class="overflow-hidden rounded-xl border border-white/10 bg-black/20" data-upload-name="${escapeHtml(file.filename)}" data-upload-source="${escapeHtml(file.source)}">
+            <div class="library-thumb bg-black">${libraryPreview(file)}</div>
+            <div class="p-4"><p class="truncate text-sm font-bold" title="${escapeHtml(file.filename)}">${escapeHtml(file.filename)}</p><p class="mt-1 text-xs text-white/40">${file.type} · ${formatBytes(file.size)} · ${file.managed ? "upload" : "mídia da cena"}</p><div class="mt-3 flex flex-wrap items-center justify-between gap-2"><span class="text-xs ${file.usedBy ? "text-gold" : "text-white/35"}">${file.usedBy ? "Em uso em uma cena" : "Não utilizado"}</span><div class="flex flex-wrap gap-2">${file.backgroundUsedBy > 0 ? `<select data-background-scene class="input max-w-[140px] rounded-lg px-2 py-2 text-xs text-white">${slideItems.map((item, index) => `<option value="${item.id}">Cena ${String(index + 1).padStart(2, "0")}</option>`).join("")}</select><button data-upload-background type="button" class="rounded-lg border border-mint/30 px-3 py-2 text-xs font-bold uppercase text-mint transition hover:bg-mint/10">Aplicar na cena</button>` : `<button data-upload-add type="button" class="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold uppercase text-white/65 transition hover:border-mint hover:text-mint">Adicionar cena</button>`}${file.managed ? `<button data-upload-delete type="button" ${file.usedBy ? 'disabled title="Remova a cena que usa este arquivo primeiro"' : ""} class="rounded-lg border border-red-400/30 px-3 py-2 text-xs font-bold uppercase text-red-300 transition hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-35">Apagar</button>` : ""}</div></div></div>
+          </article>`;
+      }
+      function renderLibrary(files) {
+        libraryEmpty.classList.toggle("hidden", files.length > 0);
+        const backgrounds = files.filter((file) => file.isBackground);
+        const media = files.filter((file) => !file.isBackground);
+        libraryList.innerHTML = `${media.length ? `<section class="sm:col-span-2 lg:col-span-3"><div class="mb-3 flex items-center gap-3"><h3 class="font-display text-xl font-bold uppercase">Imagens e vídeos</h3><span class="text-xs text-white/35">${media.length} arquivo(s)</span></div><div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">${media.map(renderLibraryCard).join("")}</div></section>` : ""}${backgrounds.length ? `<section class="border-t border-white/10 pt-6 sm:col-span-2 lg:col-span-3"><div class="mb-3 flex items-center gap-3"><h3 class="font-display text-xl font-bold uppercase text-mint">Backgrounds</h3><span class="text-xs text-white/35">${backgrounds.length} arquivo(s) aplicado(s)</span></div><div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">${backgrounds.map(renderLibraryCard).join("")}</div></section>` : ""}`;
+      }
+      async function loadLibrary() {
+        const response = await fetch(`/api/uploads?poll=${Date.now()}`, {
+          cache: "no-store",
+        });
+        const result = await readJson(response);
+        if (!response.ok) throw new Error(result.error);
+        renderLibrary(result);
+      }
+      function openLibrary() {
+        libraryModal.classList.remove("hidden");
+        libraryModal.classList.add("flex");
+        loadLibrary().catch((error) => {
+          libraryList.innerHTML = `<p class="text-red-300">${escapeHtml(error.message)}</p>`;
+        });
+      }
+      function closeLibrary() {
+        libraryModal.classList.add("hidden");
+        libraryModal.classList.remove("flex");
+      }
+      function openBackgroundSceneModal(source, filename) {
+        selectedLibrarySource = source;
+        backgroundSceneFile.textContent = filename;
+        backgroundSceneSelect.innerHTML = slideItems
+          .map(
+            (item, index) =>
+              `<option value="${item.id}">Cena ${String(index + 1).padStart(2, "0")} · ${escapeHtml(item.source.split("/").pop())}</option>`,
+          )
+          .join("");
+        backgroundSceneMessage.textContent = slideItems.length
+          ? ""
+          : "Nenhuma cena disponível.";
+        backgroundSceneModal.classList.remove("hidden");
+        backgroundSceneModal.classList.add("flex");
+      }
+      function closeBackgroundSceneModal() {
+        backgroundSceneModal.classList.add("hidden");
+        backgroundSceneModal.classList.remove("flex");
+        selectedLibrarySource = "";
+      }
+      function renderSlides(items) {
+        slideItems = items;
+        slideEmpty.classList.toggle("hidden", items.length > 0);
+        slideList.innerHTML = items
+          .map(
+            (item, index) => `
+          <article draggable="true" class="grid gap-4 rounded-xl border border-white/10 bg-black/20 p-3 md:grid-cols-[150px_1fr_auto] md:items-center" data-slide-id="${item.id}">
+            <div class="slide-thumb relative overflow-hidden rounded-lg bg-black">${mediaPreview(item)}<span class="absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/70">${item.type}</span></div>
+            <div><p class="font-display text-lg font-bold uppercase">Cena ${String(index + 1).padStart(2, "0")}</p><p class="text-xs text-white/40">${escapeHtml(item.source.split("/").pop())}${item.overlaySource ? " + camada" : ""}</p><div class="mt-3 flex flex-wrap gap-2"><label class="text-xs text-white/45">Segundos<input data-field="duration" type="number" min="1" value="${Math.round(item.duration / 1000)}" class="input ml-2 w-20 rounded-lg px-2 py-1 text-white" /></label><select data-field="fit" class="input rounded-lg px-2 py-1 text-xs text-white"><option value="cover" ${item.fit === "cover" ? "selected" : ""}>Preencher</option><option value="contain" ${item.fit === "contain" ? "selected" : ""}>Inteira</option><option value="fill" ${item.fit === "fill" ? "selected" : ""}>Esticar</option></select></div><div class="mt-3 flex flex-wrap items-center gap-2"><label class="cursor-pointer rounded-lg border border-white/15 px-3 py-2 text-xs font-bold uppercase text-white/65 transition hover:border-mint hover:text-mint">${item.overlaySource ? "Trocar background" : "Adicionar background"}<input data-overlay-input type="file" accept="image/*,video/*" class="hidden" /></label>${item.overlaySource ? '<button data-action="remove-overlay" type="button" class="rounded-lg border border-red-400/30 px-3 py-2 text-xs font-bold uppercase text-red-300 hover:bg-red-400/10">Remover background</button>' : ""}</div></div>
+            <div class="flex gap-2 md:flex-col"><button data-action="save" type="button" class="rounded-lg border border-mint/30 px-3 py-2 text-xs font-bold uppercase text-mint hover:bg-mint/10">Salvar</button><button data-action="delete" type="button" class="rounded-lg border border-red-400/30 px-3 py-2 text-xs font-bold uppercase text-red-300 hover:bg-red-400/10">Remover</button></div>
+          </article>`,
+          )
+          .join("");
+      }
+      async function loadSlides() {
+        const response = await fetch(`/api/slide?poll=${Date.now()}`, {
+          cache: "no-store",
+        });
+        const result = await readJson(response);
+        if (!response.ok) throw new Error(result.error);
+        renderSlides(result);
+      }
+      function openSlideModal() {
+        slideMessage.textContent = "";
+        slideMessage.className = "min-h-5 text-center text-sm";
+        slideForm.reset();
+        document.querySelector("#slide-duration").value = 16;
+        slideModal.classList.remove("hidden");
+        slideModal.classList.add("flex");
+      }
+      function closeSlideModal() {
+        slideModal.classList.add("hidden");
+        slideModal.classList.remove("flex");
+      }
+      document
+        .querySelector("#slide-add-button")
+        .addEventListener("click", openSlideModal);
+      document
+        .querySelector("#slide-close")
+        .addEventListener("click", closeSlideModal);
+      slideModal.addEventListener("click", (event) => {
+        if (event.target === slideModal) closeSlideModal();
+      });
+      document
+        .querySelector("#library-button")
+        .addEventListener("click", openLibrary);
+      document
+        .querySelector("#library-close")
+        .addEventListener("click", closeLibrary);
+      libraryModal.addEventListener("click", (event) => {
+        if (event.target === libraryModal) closeLibrary();
+      });
+      document
+        .querySelector("#background-scene-close")
+        .addEventListener("click", closeBackgroundSceneModal);
+      backgroundSceneModal.addEventListener("click", (event) => {
+        if (event.target === backgroundSceneModal) closeBackgroundSceneModal();
+      });
+      libraryList.addEventListener("click", async (event) => {
+        const card = event.target.closest("[data-upload-name]");
+        const deleteButton = event.target.closest("[data-upload-delete]");
+        const addButton = event.target.closest("[data-upload-add]");
+        const backgroundButton = event.target.closest(
+          "[data-upload-background]",
+        );
+        if (!card || (!deleteButton && !addButton && !backgroundButton)) return;
+        if (backgroundButton) {
+          const sceneSelect = card.querySelector("[data-background-scene]");
+          backgroundButton.disabled = true;
+          try {
+            const response = await fetch(
+              `/api/slide/${sceneSelect.value}/overlay-from-library`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ source: card.dataset.uploadSource }),
+              },
+            );
+            const result = await readJson(response);
+            if (!response.ok) throw new Error(result.error);
+            await Promise.all([loadSlides(), loadLibrary()]);
+            showToast("Background aplicado na cena selecionada.");
+          } catch (error) {
+            showToast(error.message);
+          } finally {
+            backgroundButton.disabled = false;
+          }
+          return;
+        }
+        if (deleteButton) {
+          if (deleteButton.disabled || !confirm("Apagar este arquivo enviado?"))
+            return;
+          deleteButton.disabled = true;
+        }
+        try {
+          const response = addButton
+            ? await fetch("/api/slide/from-library", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  source: card.dataset.uploadSource,
+                  duration: 16,
+                  fit: "cover",
+                }),
+              })
+            : await fetch(
+                `/api/uploads/${encodeURIComponent(card.dataset.uploadName)}`,
+                { method: "DELETE" },
+              );
+          const result =
+            response.status === 204 ? null : await readJson(response);
+          if (!response.ok) throw new Error(result.error);
+          await Promise.all([loadLibrary(), loadSlides()]);
+          showToast(
+            addButton ? "Cena adicionada ao telão." : "Upload apagado.",
+          );
+        } catch (error) {
+          if (deleteButton) deleteButton.disabled = false;
+          showToast(error.message);
+        }
+      });
+      backgroundSceneForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const save = document.querySelector("#background-scene-save");
+        save.disabled = true;
+        backgroundSceneMessage.textContent = "Aplicando background...";
+        try {
+          const response = await fetch(
+            `/api/slide/${backgroundSceneSelect.value}/overlay-from-library`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ source: selectedLibrarySource }),
+            },
+          );
+          const result = await readJson(response);
+          if (!response.ok) throw new Error(result.error);
+          closeBackgroundSceneModal();
+          await Promise.all([loadSlides(), loadLibrary()]);
+          showToast("Background aplicado à cena escolhida.");
+        } catch (error) {
+          backgroundSceneMessage.textContent = error.message;
+          backgroundSceneMessage.className =
+            "min-h-5 text-center text-sm text-red-300";
+        } finally {
+          save.disabled = false;
+        }
+      });
+      slideForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const save = document.querySelector("#slide-save");
+        save.disabled = true;
+        slideMessage.textContent = "Enviando arquivos...";
+        try {
+          const data = new FormData();
+          data.append("media", document.querySelector("#slide-media").files[0]);
+          data.append(
+            "overlay",
+            document.querySelector("#slide-overlay").files[0] || "",
+          );
+          data.append(
+            "duration",
+            document.querySelector("#slide-duration").value,
+          );
+          data.append("fit", document.querySelector("#slide-fit").value);
+          const response = await fetch("/api/slide", {
+            method: "POST",
+            body: data,
+          });
+          const result = await readJson(response);
+          if (!response.ok) throw new Error(result.error);
+          closeSlideModal();
+          await loadSlides();
+          showToast("Cena adicionada ao telão.");
+        } catch (error) {
+          slideMessage.textContent = error.message;
+          slideMessage.className = "min-h-5 text-center text-sm text-red-300";
+        } finally {
+          save.disabled = false;
+        }
+      });
+      slideList.addEventListener("click", async (event) => {
+        const card = event.target.closest("[data-slide-id]");
+        const action = event.target.closest("[data-action]")?.dataset.action;
+        if (!card || !action) return;
+        if (action === "delete" && !confirm("Remover esta cena do telão?"))
+          return;
+        if (
+          action === "remove-overlay" &&
+          !confirm("Remover o background desta cena?")
+        )
+          return;
+        try {
+          if (action === "remove-overlay") {
+            const response = await fetch(
+              `/api/slide/${card.dataset.slideId}/overlay`,
+              { method: "DELETE" },
+            );
+            const result = await readJson(response);
+            if (!response.ok) throw new Error(result.error);
+            await Promise.all([loadSlides(), loadLibrary()]);
+            showToast("Background removido da cena.");
+            return;
+          }
+          const payload =
+            action === "save"
+              ? {
+                  duration: card.querySelector('[data-field="duration"]').value,
+                  fit: card.querySelector('[data-field="fit"]').value,
+                }
+              : null;
+          const response = await fetch(`/api/slide/${card.dataset.slideId}`, {
+            method: action === "delete" ? "DELETE" : "PATCH",
+            headers: payload
+              ? { "Content-Type": "application/json" }
+              : undefined,
+            body: payload ? JSON.stringify(payload) : undefined,
+          });
+          const result =
+            response.status === 204 ? null : await readJson(response);
+          if (!response.ok) throw new Error(result.error);
+          await loadSlides();
+          await loadLibrary();
+          showToast(
+            action === "delete" ? "Cena removida." : "Cena atualizada.",
+          );
+        } catch (error) {
+          showToast(error.message);
+        }
+      });
+      slideList.addEventListener("change", async (event) => {
+        const input = event.target.closest("[data-overlay-input]");
+        const card = event.target.closest("[data-slide-id]");
+        const file = input?.files?.[0];
+        if (!input || !card || !file) return;
+        const data = new FormData();
+        data.append("overlay", file);
+        try {
+          const response = await fetch(
+            `/api/slide/${card.dataset.slideId}/overlay`,
+            { method: "POST", body: data },
+          );
+          const result = await readJson(response);
+          if (!response.ok) throw new Error(result.error);
+          await Promise.all([loadSlides(), loadLibrary()]);
+          showToast("Background aplicado à cena.");
+        } catch (error) {
+          showToast(error.message);
+        } finally {
+          input.value = "";
+        }
+      });
+      let draggedSlide = null;
+      slideList.addEventListener("dragstart", (event) => {
+        const card = event.target.closest("[data-slide-id]");
+        if (!card) return;
+        draggedSlide = card;
+        card.classList.add("is-dragging");
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", card.dataset.slideId);
+      });
+      slideList.addEventListener("dragover", (event) => {
+        if (!draggedSlide) return;
+        event.preventDefault();
+        const target = event.target.closest("[data-slide-id]");
+        if (!target || target === draggedSlide) return;
+        slideList
+          .querySelectorAll(".is-drop-target")
+          .forEach((item) => item.classList.remove("is-drop-target"));
+        target.classList.add("is-drop-target");
+        const isAfter =
+          event.clientY >
+          target.getBoundingClientRect().top + target.offsetHeight / 2;
+        slideList.insertBefore(
+          draggedSlide,
+          isAfter ? target.nextSibling : target,
+        );
+      });
+      slideList.addEventListener("dragend", async () => {
+        if (!draggedSlide) return;
+        draggedSlide.classList.remove("is-dragging");
+        slideList
+          .querySelectorAll(".is-drop-target")
+          .forEach((item) => item.classList.remove("is-drop-target"));
+        const ids = [...slideList.querySelectorAll("[data-slide-id]")].map(
+          (item) => item.dataset.slideId,
+        );
+        draggedSlide = null;
+        try {
+          const response = await fetch("/api/slide/order", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ids }),
+          });
+          const result = await readJson(response);
+          if (!response.ok) throw new Error(result.error);
+          await loadSlides();
+          showToast("Ordem das cenas salva.");
+        } catch (error) {
+          await loadSlides();
+          showToast(error.message);
+        }
+      });
+      loadSlides()
+        .then(loadLibrary)
+        .catch((error) => {
+          slideEmpty.textContent = error.message;
+          slideEmpty.classList.remove("hidden");
+        });
+    </script>
+  </body>
+</html>

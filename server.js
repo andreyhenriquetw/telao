@@ -4,6 +4,8 @@ const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const path = require("path");
+const fs = require("fs");
+const multer = require("multer");
 const { Server } = require("socket.io");
 const { PrismaClient } = require("@prisma/client");
 
@@ -33,7 +35,454 @@ function databaseError(error) {
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+const publicDirectory = path.join(__dirname, "public");
+app.use(express.static(publicDirectory));
+
+const uploadDirectory = path.join(publicDirectory, "uploads");
+fs.mkdirSync(uploadDirectory, { recursive: true });
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: uploadDirectory,
+    filename: (req, file, callback) => {
+      const extension = path.extname(file.originalname).toLowerCase();
+      callback(
+        null,
+        `${Date.now()}-${Math.random().toString(36).slice(2)}${extension}`,
+      );
+    },
+  }),
+  limits: { fileSize: 150 * 1024 * 1024 },
+  fileFilter: (req, file, callback) => {
+    callback(null, /^(image|video)\//.test(file.mimetype));
+  },
+});
+
+function mediaType(file) {
+  return file.mimetype.startsWith("video/") ? "video" : "image";
+}
+
+function mediaUrl(file) {
+  return `/uploads/${file.filename}`;
+}
+
+function uploadedFileType(filename) {
+  return /\.(mp4|webm|mov|m4v|avi)$/i.test(filename) ? "video" : "image";
+}
+
+async function rememberAsset(source, role) {
+  return prisma.slideAsset.upsert({
+    where: { source },
+    update: { role },
+    create: { source, role },
+  });
+}
+
+app.get("/api/uploads", async (req, res) => {
+  try {
+    const [filenames, scenes, assets] = await Promise.all([
+      fs.promises.readdir(uploadDirectory),
+      prisma.slideMedia.findMany({
+        select: { source: true, overlaySource: true },
+      }),
+      prisma.slideAsset.findMany(),
+    ]);
+    const mainUsage = new Map();
+    const backgroundUsage = new Map();
+    const backgroundSources = new Set(
+      assets
+        .filter((asset) => asset.role === "background")
+        .map((asset) => asset.source),
+    );
+    const sceneSources = new Set();
+    for (const scene of scenes) {
+      if (scene.source) {
+        sceneSources.add(scene.source);
+        mainUsage.set(scene.source, (mainUsage.get(scene.source) || 0) + 1);
+      }
+      if (scene.overlaySource) {
+        sceneSources.add(scene.overlaySource);
+        backgroundSources.add(scene.overlaySource);
+        backgroundUsage.set(
+          scene.overlaySource,
+          (backgroundUsage.get(scene.overlaySource) || 0) + 1,
+        );
+      }
+    }
+    await Promise.all(
+      [...backgroundSources].map((source) =>
+        rememberAsset(source, "background"),
+      ),
+    );
+    const uploadFiles = await Promise.all(
+      filenames.map(async (filename) => {
+        const stats = await fs.promises.stat(
+          path.join(uploadDirectory, filename),
+        );
+        return {
+          filename,
+          source: mediaUrl({ filename }),
+          type: uploadedFileType(filename),
+          size: stats.size,
+          usedBy:
+            (mainUsage.get(`/uploads/${filename}`) || 0) +
+            (backgroundUsage.get(`/uploads/${filename}`) || 0),
+          mainUsedBy: mainUsage.get(`/uploads/${filename}`) || 0,
+          backgroundUsedBy:
+            backgroundUsage.get(`/uploads/${filename}`) ||
+            (backgroundSources.has(`/uploads/${filename}`) ? 1 : 0),
+          isBackground: backgroundSources.has(`/uploads/${filename}`),
+          managed: true,
+          updatedAt: stats.mtime,
+        };
+      }),
+    );
+    const librarySources = [...sceneSources].filter(
+      (source) => !source.startsWith("/uploads/"),
+    );
+    const sceneFiles = await Promise.all(
+      librarySources.map(async (source) => {
+        const filePath = path.join(publicDirectory, source.replace(/^\/+/, ""));
+        try {
+          const stats = await fs.promises.stat(filePath);
+          return {
+            filename: path.basename(source),
+            source,
+            type: uploadedFileType(source),
+            size: stats.size,
+            usedBy:
+              (mainUsage.get(source) || 0) + (backgroundUsage.get(source) || 0),
+            mainUsedBy: mainUsage.get(source) || 0,
+            backgroundUsedBy:
+              backgroundUsage.get(source) ||
+              (backgroundSources.has(source) ? 1 : 0),
+            isBackground: backgroundSources.has(source),
+            managed: false,
+            updatedAt: stats.mtime,
+          };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const files = [...uploadFiles, ...sceneFiles.filter(Boolean)];
+    res.json(files.sort((left, right) => right.updatedAt - left.updatedAt));
+  } catch (error) {
+    console.error("Erro ao listar uploads:", error);
+    res.status(503).json({ error: databaseError(error) });
+  }
+});
+
+app.post("/api/slide/from-library", async (req, res) => {
+  const source = String(req.body.source || "");
+  const duration = Number(req.body.duration || 16);
+  const relativeSource = source.replace(/^\/+/, "");
+  const filePath = path.resolve(publicDirectory, relativeSource);
+  if (
+    !source.startsWith("/") ||
+    relativeSource.includes("..") ||
+    !filePath.startsWith(`${publicDirectory}${path.sep}`) ||
+    !Number.isFinite(duration) ||
+    duration < 1
+  ) {
+    return res.status(400).json({ error: "Mídia da biblioteca inválida." });
+  }
+  try {
+    const stats = await fs.promises.stat(filePath);
+    if (!stats.isFile()) throw new Error("Arquivo inválido");
+    const last = await prisma.slideMedia.findFirst({
+      orderBy: { position: "desc" },
+    });
+    const media = await prisma.slideMedia.create({
+      data: {
+        position: (last?.position || 0) + 1,
+        source,
+        type: uploadedFileType(source),
+        duration: Math.round(duration * 1000),
+        fit: ["cover", "contain", "fill"].includes(req.body.fit)
+          ? req.body.fit
+          : "cover",
+      },
+    });
+    await rememberAsset(media.source, "media");
+    io.emit("SLIDE_ATUALIZADO");
+    res.status(201).json(media);
+  } catch (error) {
+    console.error("Erro ao reutilizar mídia da biblioteca:", error);
+    res.status(error.code === "ENOENT" ? 404 : 503).json({
+      error:
+        error.code === "ENOENT"
+          ? "Arquivo não encontrado."
+          : databaseError(error),
+    });
+  }
+});
+
+app.delete("/api/uploads/:filename", async (req, res) => {
+  const filename = path.basename(req.params.filename);
+  if (!filename || filename !== req.params.filename) {
+    return res.status(400).json({ error: "Arquivo inválido." });
+  }
+  try {
+    const scenes = await prisma.slideMedia.findMany({
+      where: {
+        OR: [
+          { source: `/uploads/${filename}` },
+          { overlaySource: `/uploads/${filename}` },
+        ],
+      },
+      select: { id: true },
+    });
+    if (scenes.length) {
+      return res.status(409).json({
+        error:
+          "Este arquivo ainda está sendo usado por uma cena. Remova a cena primeiro.",
+      });
+    }
+    const filePath = path.join(uploadDirectory, filename);
+    await fs.promises.unlink(filePath);
+    await prisma.slideAsset.deleteMany({ source: `/uploads/${filename}` });
+    res.status(204).end();
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return res.status(404).json({ error: "Arquivo não encontrado." });
+    }
+    console.error("Erro ao remover upload:", error);
+    res.status(503).json({ error: "Não foi possível remover o arquivo." });
+  }
+});
+
+app.get("/api/slide", async (req, res) => {
+  try {
+    let media = await prisma.slideMedia.findMany({
+      orderBy: { position: "asc" },
+    });
+    if (!media.length) {
+      const defaults = [
+        ["/001.png", "image", 16, "contain"],
+        ["/002.jpeg", "image", 32, "cover"],
+        ["/003.mp4", "video", 20, "cover"],
+        ["/004.jpeg", "image", 32, "cover"],
+        ["/005.jpeg", "image", 16, "cover"],
+        ["/007.jpeg", "image", 16, "cover"],
+        ["/008.jpeg", "image", 17, "fill"],
+        ["/010.png", "image", 16, "contain"],
+        ["/011.jpeg", "image", 15, "cover"],
+      ];
+      await prisma.slideMedia.createMany({
+        data: defaults.map(([source, type, duration, fit], position) => ({
+          source,
+          type,
+          duration: duration * 1000,
+          fit,
+          position: position + 1,
+        })),
+      });
+      media = await prisma.slideMedia.findMany({
+        orderBy: { position: "asc" },
+      });
+    }
+    res.json(media);
+  } catch (error) {
+    console.error("Erro ao buscar mídias do slide:", error);
+    res.status(503).json({ error: databaseError(error) });
+  }
+});
+
+app.post(
+  "/api/slide",
+  upload.fields([
+    { name: "media", maxCount: 1 },
+    { name: "overlay", maxCount: 1 },
+  ]),
+  async (req, res) => {
+    const mediaFile = req.files?.media?.[0];
+    const overlayFile = req.files?.overlay?.[0];
+    const duration = Number(req.body.duration);
+    if (!mediaFile || !Number.isFinite(duration) || duration < 1) {
+      return res.status(400).json({
+        error: "Envie uma mídia e uma duração de pelo menos 1 segundo.",
+      });
+    }
+    try {
+      const last = await prisma.slideMedia.findFirst({
+        orderBy: { position: "desc" },
+      });
+      const media = await prisma.slideMedia.create({
+        data: {
+          position: (last?.position || 0) + 1,
+          type: mediaType(mediaFile),
+          source: mediaUrl(mediaFile),
+          duration: Math.round(duration * 1000),
+          fit: ["cover", "contain", "fill"].includes(req.body.fit)
+            ? req.body.fit
+            : "cover",
+          overlaySource: overlayFile ? mediaUrl(overlayFile) : null,
+          overlayType: overlayFile ? mediaType(overlayFile) : null,
+        },
+      });
+      await rememberAsset(media.source, "media");
+      if (media.overlaySource)
+        await rememberAsset(media.overlaySource, "background");
+      io.emit("SLIDE_ATUALIZADO");
+      res.status(201).json(media);
+    } catch (error) {
+      console.error("Erro ao criar mídia do slide:", error);
+      res.status(503).json({ error: databaseError(error) });
+    }
+  },
+);
+
+app.patch("/api/slide/:id", async (req, res) => {
+  const duration = Number(req.body.duration);
+  if (!Number.isFinite(duration) || duration < 1) {
+    return res.status(400).json({ error: "A duração mínima é de 1 segundo." });
+  }
+  try {
+    const media = await prisma.slideMedia.update({
+      where: { id: req.params.id },
+      data: {
+        duration: Math.round(duration * 1000),
+        fit: ["cover", "contain", "fill"].includes(req.body.fit)
+          ? req.body.fit
+          : "cover",
+      },
+    });
+    await rememberAsset(mediaUrl(req.file), "background");
+    io.emit("SLIDE_ATUALIZADO");
+    res.json(media);
+  } catch (error) {
+    console.error("Erro ao editar mídia do slide:", error);
+    res.status(503).json({ error: databaseError(error) });
+  }
+});
+
+app.post(
+  "/api/slide/:id/overlay",
+  upload.single("overlay"),
+  async (req, res) => {
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ error: "Escolha uma imagem ou vídeo para o background." });
+    }
+    try {
+      const media = await prisma.slideMedia.update({
+        where: { id: req.params.id },
+        data: {
+          overlaySource: mediaUrl(req.file),
+          overlayType: mediaType(req.file),
+        },
+      });
+      io.emit("SLIDE_ATUALIZADO");
+      res.json(media);
+    } catch (error) {
+      console.error("Erro ao adicionar background à cena:", error);
+      res.status(503).json({ error: databaseError(error) });
+    }
+  },
+);
+
+app.delete("/api/slide/:id/overlay", async (req, res) => {
+  try {
+    const media = await prisma.slideMedia.update({
+      where: { id: req.params.id },
+      data: { overlaySource: null, overlayType: null },
+    });
+    io.emit("SLIDE_ATUALIZADO");
+    res.json(media);
+  } catch (error) {
+    console.error("Erro ao remover background da cena:", error);
+    res.status(503).json({ error: databaseError(error) });
+  }
+});
+
+app.post("/api/slide/:id/overlay-from-library", async (req, res) => {
+  const source = String(req.body.source || "");
+  const relativeSource = source.replace(/^\/+/, "");
+  const filePath = path.resolve(publicDirectory, relativeSource);
+  if (
+    !source.startsWith("/") ||
+    relativeSource.includes("..") ||
+    !filePath.startsWith(`${publicDirectory}${path.sep}`)
+  ) {
+    return res.status(400).json({ error: "Mídia da biblioteca inválida." });
+  }
+  try {
+    const stats = await fs.promises.stat(filePath);
+    if (!stats.isFile()) throw new Error("Arquivo inválido");
+    const media = await prisma.slideMedia.update({
+      where: { id: req.params.id },
+      data: { overlaySource: source, overlayType: uploadedFileType(source) },
+    });
+    await rememberAsset(source, "background");
+    io.emit("SLIDE_ATUALIZADO");
+    res.json(media);
+  } catch (error) {
+    console.error("Erro ao aplicar background da biblioteca:", error);
+    res.status(error.code === "ENOENT" ? 404 : 503).json({
+      error:
+        error.code === "ENOENT"
+          ? "Arquivo não encontrado."
+          : databaseError(error),
+    });
+  }
+});
+
+app.put("/api/slide/order", async (req, res) => {
+  const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
+  if (!ids.length || ids.some((id) => typeof id !== "string")) {
+    return res.status(400).json({ error: "Informe a ordem das cenas." });
+  }
+  try {
+    const existing = await prisma.slideMedia.findMany({ select: { id: true } });
+    const existingIds = new Set(existing.map((item) => item.id));
+    if (
+      ids.length !== existing.length ||
+      new Set(ids).size !== ids.length ||
+      ids.some((id) => !existingIds.has(id))
+    ) {
+      return res
+        .status(400)
+        .json({ error: "A lista de cenas está desatualizada." });
+    }
+    await prisma.$transaction(async (tx) => {
+      for (const [index, id] of ids.entries()) {
+        await tx.slideMedia.update({
+          where: { id },
+          data: { position: -(index + 1) },
+        });
+      }
+      for (const [index, id] of ids.entries()) {
+        await tx.slideMedia.update({
+          where: { id },
+          data: { position: index + 1 },
+        });
+      }
+    });
+    io.emit("SLIDE_ATUALIZADO");
+    res.json({ ids });
+  } catch (error) {
+    console.error("Erro ao reordenar mídias do slide:", error);
+    res.status(503).json({ error: databaseError(error) });
+  }
+});
+
+app.delete("/api/slide/:id", async (req, res) => {
+  try {
+    const media = await prisma.slideMedia.delete({
+      where: { id: req.params.id },
+    });
+    await prisma.slideMedia.updateMany({
+      where: { position: { gt: media.position } },
+      data: { position: { decrement: 1 } },
+    });
+    io.emit("SLIDE_ATUALIZADO");
+    res.status(204).end();
+  } catch (error) {
+    console.error("Erro ao remover mídia do slide:", error);
+    res.status(503).json({ error: databaseError(error) });
+  }
+});
 
 const rankingSelect = {
   id: true,

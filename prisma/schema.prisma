@@ -29,3 +29,26 @@ model Transacao {
 
   @@index([camaroteId])
 }
+
+model SlideMedia {
+  id              String   @id @default(uuid())
+  position        Int
+  type            String
+  source          String
+  duration        Int      @default(16000)
+  fit             String   @default("cover")
+  overlaySource   String?
+  overlayType     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([position])
+}
+
+model SlideAsset {
+  id        String   @id @default(uuid())
+  source    String   @unique
+  role      String   @default("media")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

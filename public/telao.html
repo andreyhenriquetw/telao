@@ -815,6 +815,7 @@
       .showcase-image {
         position: absolute;
         inset: 0;
+        z-index: 1;
         width: 100vw;
         height: 100vh;
         object-fit: cover;
@@ -824,6 +825,22 @@
       }
       .showcase-video {
         object-fit: cover;
+      }
+      .showcase-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: none;
+        opacity: 0;
+        mix-blend-mode: normal;
+        pointer-events: none;
+      }
+      .showcase-overlay.is-active {
+        display: block;
+        opacity: 1;
       }
       .showcase-image-contained {
         object-fit: contain;
@@ -877,7 +894,15 @@
       }
       #flash-number {
         color: #fff9d6;
+        font-size: 8rem;
+        letter-spacing: 0.06em;
+        line-height: 0.9;
         -webkit-text-stroke: 2px #090909;
+      }
+      @media (min-width: 768px) {
+        #flash-number {
+          font-size: 12rem;
+        }
       }
       #flash-client {
         color: #fff;
@@ -1287,7 +1312,7 @@
           <p
             class="condensed text-base font-bold uppercase tracking-[.32em] text-[#ffe66e] md:text-xl"
           >
-            To Skola apresenta
+            To na Skola apresenta
           </p>
           <h1
             class="title-glow condensed text-6xl font-black uppercase leading-[.82] tracking-tight text-[#fff9cb] md:text-[7.2rem]"
@@ -1341,6 +1366,8 @@
         playsinline
         loop
       ></video>
+      <img class="showcase-overlay" alt="" />
+      <video class="showcase-overlay" muted playsinline loop></video>
     </div>
     <div
       id="flash"
@@ -1400,7 +1427,10 @@
       const showcase = document.querySelector("#showcase");
       const showcaseImage = showcase.querySelector(".showcase-image");
       const showcaseVideo = showcase.querySelector(".showcase-video");
-      const showcaseMedia = [
+      const showcaseOverlayImage = showcase.querySelector(".showcase-overlay");
+      const showcaseOverlayVideo =
+        showcase.querySelectorAll(".showcase-overlay")[1];
+      const fallbackShowcaseMedia = [
         {
           source: "/001.png",
           duration: 16000,
@@ -1426,6 +1456,8 @@
         },
         { source: "/011.jpeg", duration: 15000, type: "image" },
       ];
+      let showcaseMedia = fallbackShowcaseMedia;
+      let showcaseMediaSignature = "";
       let currentRanking = [];
       let showcaseStarted = false;
       let showcaseRun = 0;
@@ -1437,6 +1469,49 @@
       let lastAlertKey = "";
       let rabbitFrameRequest = 0;
       let rabbitRendering = false;
+      async function loadShowcaseMedia() {
+        try {
+          const response = await fetch(`/api/slide?poll=${Date.now()}`, {
+            cache: "no-store",
+          });
+          if (!response.ok) return;
+          const items = await response.json();
+          if (items.length) {
+            const nextMedia = items.map((item) => ({
+              ...item,
+              duration: Number(item.duration),
+              contain: item.fit === "contain",
+              stretch: item.fit === "fill",
+            }));
+            const nextSignature = JSON.stringify(
+              nextMedia.map((item) => ({
+                id: item.id,
+                position: item.position,
+                source: item.source,
+                duration: item.duration,
+                fit: item.fit,
+                overlaySource: item.overlaySource,
+              })),
+            );
+            const changed = nextSignature !== showcaseMediaSignature;
+            showcaseMedia = nextMedia;
+            showcaseMediaSignature = nextSignature;
+            return changed;
+          }
+        } catch (error) {
+          console.warn(
+            "Programação visual indisponível; usando a lista local.",
+            error,
+          );
+        }
+        return false;
+      }
+      async function refreshShowcase() {
+        const changed = await loadShowcaseMedia();
+        if (!changed) return;
+        await stopShowcase();
+        showcaseStartTimer = setTimeout(startShowcase, 150);
+      }
       function renderRabbitFrame() {
         if (rabbitVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
           if (
@@ -1763,6 +1838,31 @@
             } else {
               showcaseImage.src = media.source;
             }
+            showcaseOverlayImage.className = "showcase-overlay";
+            showcaseOverlayVideo.className = "showcase-overlay";
+            showcaseOverlayImage.removeAttribute("src");
+            showcaseOverlayVideo.removeAttribute("src");
+            showcaseOverlayVideo.pause();
+            if (media.overlaySource) {
+              const activeOverlay =
+                media.overlayType === "video"
+                  ? showcaseOverlayVideo
+                  : showcaseOverlayImage;
+              const inactiveOverlay =
+                media.overlayType === "video"
+                  ? showcaseOverlayImage
+                  : showcaseOverlayVideo;
+              inactiveOverlay.className = "showcase-overlay";
+              activeOverlay.src = media.overlaySource;
+              activeOverlay.classList.add("is-active");
+              if (media.overlayType === "video") {
+                showcaseOverlayVideo.currentTime = 0;
+                showcaseOverlayVideo.play().catch(() => {});
+              }
+            } else {
+              showcaseOverlayImage.className = "showcase-overlay";
+              showcaseOverlayVideo.className = "showcase-overlay";
+            }
             void showcaseImage.offsetWidth;
             requestAnimationFrame(() => {
               requestAnimationFrame(() =>
@@ -1773,10 +1873,22 @@
             if (currentRun !== showcaseRun) return;
             activeMedia.classList.remove("is-visible");
             activeMedia.classList.add("is-leaving");
-            await new Promise((resolve) => setTimeout(resolve, 850));
+            const leavingOverlay =
+              media.overlayType === "video"
+                ? showcaseOverlayVideo
+                : showcaseOverlayImage;
+            leavingOverlay.classList.remove("is-active");
+            if (media.overlayType === "video") {
+              showcaseOverlayVideo.pause();
+            }
             if (media.type === "video") showcaseVideo.pause();
+            leavingOverlay.removeAttribute("src");
             if (index < showcaseMedia.length - 1) {
               activeMedia.className = "showcase-image";
+              showcaseOverlayImage.className = "showcase-overlay";
+              showcaseOverlayVideo.className = "showcase-overlay";
+              showcaseOverlayImage.removeAttribute("src");
+              showcaseOverlayVideo.removeAttribute("src");
             }
           }
           showcase.classList.remove("is-active");
@@ -1796,6 +1908,9 @@
         showcaseImage.className = "showcase-image";
         showcaseVideo.pause();
         showcaseVideo.className = "showcase-image showcase-video";
+        showcaseOverlayVideo.pause();
+        showcaseOverlayImage.removeAttribute("src");
+        showcaseOverlayVideo.removeAttribute("src");
       }
       function celebrate(venda, transacao, afterAlert) {
         const currentFlashRun = ++flashRun;
@@ -1847,7 +1962,10 @@
         handleNewSale(data);
       });
       socket.on("RANKING_RESET", () => render([]));
+      socket.on("SLIDE_ATUALIZADO", refreshShowcase);
       load();
+      loadShowcaseMedia();
+      setInterval(refreshShowcase, 2000);
       setInterval(pollRanking, 2000);
       showcaseStartTimer = setTimeout(startShowcase, 5000);
       setInterval(

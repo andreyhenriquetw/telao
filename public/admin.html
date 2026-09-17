@@ -63,6 +63,28 @@
         background: rgb(0 0 0 / 75%);
         backdrop-filter: blur(8px);
       }
+      .slide-thumb {
+        aspect-ratio: 16 / 9;
+      }
+      .slide-thumb img,
+      .slide-thumb video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      [data-slide-id][draggable="true"] {
+        cursor: grab;
+      }
+      [data-slide-id][draggable="true"]:active {
+        cursor: grabbing;
+      }
+      [data-slide-id].is-dragging {
+        opacity: 0.45;
+      }
+      [data-slide-id].is-drop-target {
+        border-color: #61f2c2;
+        box-shadow: 0 0 0 2px #61f2c233;
+      }
       @keyframes slide {
         from {
           transform: translateY(20px);
@@ -146,12 +168,19 @@
             Ranking da noite
           </h1>
         </div>
-        <a
-          href="/telao.html"
-          target="_blank"
-          class="rounded-full border border-white/15 px-5 py-3 text-sm font-bold transition hover:border-gold hover:text-gold"
-          >Abrir telão ↗</a
-        >
+        <nav class="flex flex-wrap gap-3">
+          <a
+            href="/programacao.html"
+            class="rounded-full border border-mint/30 px-5 py-3 text-sm font-bold text-mint transition hover:bg-mint/10"
+            >Programação visual</a
+          >
+          <a
+            href="/telao.html"
+            target="_blank"
+            class="rounded-full border border-white/15 px-5 py-3 text-sm font-bold transition hover:border-gold hover:text-gold"
+            >Abrir telão ↗</a
+          >
+        </nav>
       </header>
       <div class="grid gap-6 lg:grid-cols-[390px_1fr]">
         <section class="glow rounded-2xl bg-panel p-6 md:p-8">
