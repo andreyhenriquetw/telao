@@ -332,34 +332,9 @@ app.delete("/api/uploads/:filename", async (req, res) => {
 
 app.get("/api/slide", async (req, res) => {
   try {
-    let media = await prisma.slideMedia.findMany({
+    const media = await prisma.slideMedia.findMany({
       orderBy: { position: "asc" },
     });
-    if (!media.length) {
-      const defaults = [
-        ["/001.png", "image", 16, "contain"],
-        ["/002.jpeg", "image", 32, "cover"],
-        ["/003.mp4", "video", 20, "cover"],
-        ["/004.jpeg", "image", 32, "cover"],
-        ["/005.jpeg", "image", 16, "cover"],
-        ["/007.jpeg", "image", 16, "cover"],
-        ["/008.jpeg", "image", 17, "fill"],
-        ["/010.png", "image", 16, "contain"],
-        ["/011.jpeg", "image", 15, "cover"],
-      ];
-      await prisma.slideMedia.createMany({
-        data: defaults.map(([source, type, duration, fit], position) => ({
-          source,
-          type,
-          duration: duration * 1000,
-          fit,
-          position: position + 1,
-        })),
-      });
-      media = await prisma.slideMedia.findMany({
-        orderBy: { position: "asc" },
-      });
-    }
     res.json(media);
   } catch (error) {
     console.error("Erro ao buscar mídias do slide:", error);
