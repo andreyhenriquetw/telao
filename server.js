@@ -56,7 +56,12 @@ app.use(express.static(publicDirectory));
 const uploadDirectory = path.join(publicDirectory, "uploads");
 const isVercel = Boolean(process.env.VERCEL);
 const hasBlobToken = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
-const useBlobStorage = isVercel || hasBlobToken;
+const useBlobStorage = hasBlobToken;
+if (isVercel && !hasBlobToken) {
+  console.warn(
+    "Vercel detectada sem BLOB_READ_WRITE_TOKEN. O app continuará em modo local temporário, mas uploads persistentes exigem a variável de ambiente.",
+  );
+}
 if (!useBlobStorage) fs.mkdirSync(uploadDirectory, { recursive: true });
 const upload = multer({
   storage: useBlobStorage
