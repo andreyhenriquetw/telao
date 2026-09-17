@@ -31,6 +31,14 @@ function databaseError(error) {
   if (error?.code === "P1001" || error?.code === "P1012") {
     return "Banco de dados inacessivel. Substitua DATABASE_URL no arquivo .env pela URL real do Neon e reinicie o servidor.";
   }
+  const message = String(error?.message || "").toLowerCase();
+  if (
+    message.includes("blob") ||
+    message.includes("token") ||
+    message.includes("unauthorized")
+  ) {
+    return "Armazenamento de imagens não configurado. Crie uma Vercel Blob Store e adicione BLOB_READ_WRITE_TOKEN nas variáveis da Vercel.";
+  }
   return "Nao foi possivel concluir a operacao no banco de dados.";
 }
 
@@ -40,9 +48,9 @@ const publicDirectory = path.join(__dirname, "public");
 app.use(express.static(publicDirectory));
 
 const uploadDirectory = path.join(publicDirectory, "uploads");
-const useBlobStorage = Boolean(
-  process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL,
-);
+const isVercel = Boolean(process.env.VERCEL);
+const hasBlobToken = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+const useBlobStorage = isVercel || hasBlobToken;
 if (!useBlobStorage) fs.mkdirSync(uploadDirectory, { recursive: true });
 const upload = multer({
   storage: useBlobStorage
@@ -79,6 +87,11 @@ async function storeFile(file) {
       size: file.size,
       updatedAt: new Date(),
     };
+  }
+  if (!hasBlobToken) {
+    const error = new Error("BLOB_READ_WRITE_TOKEN ausente");
+    error.code = "BLOB_CONFIG_MISSING";
+    throw error;
   }
   const extension = path.extname(file.originalname).toLowerCase();
   const blob = await put(
