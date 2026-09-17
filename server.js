@@ -136,18 +136,28 @@ async function rememberAsset(source, role) {
 
 app.get("/api/uploads", async (req, res) => {
   try {
-    const [storedResult, scenesResult, assetsResult] = await Promise.allSettled([
-      storedFiles(),
-      prisma.slideMedia.findMany({
-        select: { source: true, overlaySource: true },
-      }),
-      prisma.slideAsset.findMany(),
-    ]);
-    const stored = storedResult.status === "fulfilled" ? storedResult.value : [];
-    const scenes = scenesResult.status === "fulfilled" ? scenesResult.value : [];
-    const assets = assetsResult.status === "fulfilled" ? assetsResult.value : [];
-    if (scenesResult.status === "rejected" || assetsResult.status === "rejected") {
-      console.warn("Banco indisponível ao listar uploads; retornando arquivos locais apenas.");
+    const [storedResult, scenesResult, assetsResult] = await Promise.allSettled(
+      [
+        storedFiles(),
+        prisma.slideMedia.findMany({
+          select: { source: true, overlaySource: true },
+        }),
+        prisma.slideAsset.findMany(),
+      ],
+    );
+    const stored =
+      storedResult.status === "fulfilled" ? storedResult.value : [];
+    const scenes =
+      scenesResult.status === "fulfilled" ? scenesResult.value : [];
+    const assets =
+      assetsResult.status === "fulfilled" ? assetsResult.value : [];
+    if (
+      scenesResult.status === "rejected" ||
+      assetsResult.status === "rejected"
+    ) {
+      console.warn(
+        "Banco indisponível ao listar uploads; retornando arquivos locais apenas.",
+      );
     }
     const mainUsage = new Map();
     const backgroundUsage = new Map();
@@ -175,7 +185,10 @@ app.get("/api/uploads", async (req, res) => {
       await Promise.all(
         [...backgroundSources].map((source) =>
           rememberAsset(source, "background").catch((error) => {
-            console.warn("Não foi possível registrar asset de background:", error);
+            console.warn(
+              "Não foi possível registrar asset de background:",
+              error,
+            );
           }),
         ),
       );
