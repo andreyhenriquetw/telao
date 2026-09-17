@@ -28,8 +28,14 @@ function parseValor(valor) {
 }
 
 function databaseError(error) {
+  if (!process.env.DATABASE_URL) {
+    return "DATABASE_URL não está configurada nas variáveis da Vercel. Adicione a URL do Neon e faça um novo deploy.";
+  }
   if (error?.code === "P1001" || error?.code === "P1012") {
     return "Banco de dados inacessivel. Substitua DATABASE_URL no arquivo .env pela URL real do Neon e reinicie o servidor.";
+  }
+  if (error?.name === "PrismaClientInitializationError") {
+    return "A Vercel não conseguiu conectar ao banco. Confira DATABASE_URL, SSL e permita conexões no Neon.";
   }
   const message = String(error?.message || "").toLowerCase();
   if (
@@ -797,7 +803,14 @@ app.post("/api/reset", async (req, res) => {
   }
 });
 
-app.get("/health", (req, res) => res.json({ status: "ok" }));
+app.get("/health", (req, res) =>
+  res.json({
+    status: "ok",
+    databaseConfigured: Boolean(process.env.DATABASE_URL),
+    blobConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+    vercel: Boolean(process.env.VERCEL),
+  }),
+);
 
 app.use((error, req, res, next) => {
   console.error("Erro nao tratado na API:", error);
@@ -814,9 +827,13 @@ io.on("connection", (socket) => {
   );
 });
 
-server.listen(port, () => {
-  console.log(`Servidor do Telao rodando em http://localhost:${port}`);
-});
+if (require.main === module) {
+  server.listen(port, () => {
+    console.log(`Servidor do Telao rodando em http://localhost:${port}`);
+  });
+}
+
+module.exports = app;
 
 process.on("SIGINT", async () => {
   await prisma.$disconnect();
