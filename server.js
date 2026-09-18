@@ -180,8 +180,14 @@ async function storeFile(file) {
 
 async function storedFiles() {
   if (isVercel) {
-    const result = await list({ prefix: "telao/" });
-    return result.blobs.map((blob) => ({
+    const blobs = [];
+    let cursor;
+    do {
+      const result = await list(cursor ? { cursor } : {});
+      blobs.push(...result.blobs);
+      cursor = result.hasMore ? result.cursor : undefined;
+    } while (cursor);
+    return blobs.map((blob) => ({
       filename: path.basename(blob.pathname),
       source: blob.url,
       type: uploadedFileType(blob.pathname),
