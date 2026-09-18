@@ -17,6 +17,7 @@ const http = require("http");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const { del, list, put } = require("@vercel/blob");
 const { Server } = require("socket.io");
 const { PrismaClient } = require("@prisma/client");
 
@@ -85,16 +86,18 @@ const uploadDirectory = isVercel
 fs.mkdirSync(uploadDirectory, { recursive: true });
 app.use("/uploads", express.static(uploadDirectory));
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: uploadDirectory,
-    filename: (req, file, callback) => {
-      const extension = path.extname(file.originalname).toLowerCase();
-      callback(
-        null,
-        `${Date.now()}-${Math.random().toString(36).slice(2)}${extension}`,
-      );
-    },
-  }),
+  storage: isVercel
+    ? multer.memoryStorage()
+    : multer.diskStorage({
+        destination: uploadDirectory,
+        filename: (req, file, callback) => {
+          const extension = path.extname(file.originalname).toLowerCase();
+          callback(
+            null,
+            `${Date.now()}-${Math.random().toString(36).slice(2)}${extension}`,
+          );
+        },
+      }),
   limits: { fileSize: 150 * 1024 * 1024 },
   fileFilter: (req, file, callback) => {
     callback(null, /^(image|video)\//.test(file.mimetype));
@@ -112,6 +115,25 @@ function mediaUrl(file) {
 }
 
 async function storeFile(file) {
+  if (isVercel) {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      const error = new Error("BLOB_READ_WRITE_TOKEN ausente");
+      error.code = "BLOB_NOT_CONFIGURED";
+      throw error;
+    }
+    const extension = path.extname(file.originalname).toLowerCase();
+    const blob = await put(
+      `telao/${Date.now()}-${Math.random().toString(36).slice(2)}${extension}`,
+      file.buffer,
+      { access: "public", contentType: file.mimetype },
+    );
+    return {
+      filename: path.basename(blob.pathname),
+      source: blob.url,
+      size: file.size,
+      updatedAt: new Date(),
+    };
+  }
   return {
     filename: file.filename,
     source: mediaUrl(file),
@@ -121,6 +143,16 @@ async function storeFile(file) {
 }
 
 async function storedFiles() {
+  if (isVercel) {
+    const result = await list({ prefix: "telao/" });
+    return result.blobs.map((blob) => ({
+      filename: path.basename(blob.pathname),
+      source: blob.url,
+      type: uploadedFileType(blob.pathname),
+      size: blob.size,
+      updatedAt: new Date(blob.uploadedAt),
+    }));
+  }
   let filenames;
   try {
     filenames = await fs.promises.readdir(uploadDirectory);
@@ -146,6 +178,34 @@ async function storedFiles() {
 
 function uploadedFileType(filename) {
   return /\.(mp4|webm|mov|m4v|avi)$/i.test(filename) ? "video" : "image";
+}
+
+function isBlobSource(source) {
+  return /^https:\/\/[^\s]+$/i.test(String(source || ""));
+}
+
+async function sourceExists(source) {
+  if (!source) return false;
+  if (isBlobSource(source)) return true;
+  if (!source.startsWith("/")) return false;
+  const relativeSource = source.replace(/^\/+/, "");
+  if (relativeSource.includes("..")) return false;
+  const filePath = path.resolve(publicDirectory, relativeSource);
+  if (!filePath.startsWith(`${publicDirectory}${path.sep}`)) return false;
+  try {
+    const stats = await fs.promises.stat(filePath);
+    return stats.isFile();
+  } catch {
+    return false;
+  }
+}
+
+async function removeStoredFile(file) {
+  if (isVercel && isBlobSource(file.source)) {
+    await del(file.source);
+    return;
+  }
+  await fs.promises.unlink(path.join(uploadDirectory, file.filename));
 }
 
 app.get("/api/uploads", async (req, res) => {
@@ -229,17 +289,20 @@ app.post("/api/slide/from-library", async (req, res) => {
   const relativeSource = source.replace(/^\/+/, "");
   const filePath = path.resolve(publicDirectory, relativeSource);
   if (
-    !source.startsWith("/") ||
-    relativeSource.includes("..") ||
-    !filePath.startsWith(`${publicDirectory}${path.sep}`) ||
+    (!isBlobSource(source) &&
+      (!source.startsWith("/") ||
+        relativeSource.includes("..") ||
+        !filePath.startsWith(`${publicDirectory}${path.sep}`))) ||
     !Number.isFinite(duration) ||
     duration < 1
   ) {
     return res.status(400).json({ error: "Mídia da biblioteca inválida." });
   }
   try {
-    const stats = await fs.promises.stat(filePath);
-    if (!stats.isFile()) throw new Error("Arquivo inválido");
+    if (!isBlobSource(source)) {
+      const stats = await fs.promises.stat(filePath);
+      if (!stats.isFile()) throw new Error("Arquivo inválido");
+    }
     const last = await prisma.slideMedia.findFirst({
       orderBy: { position: "desc" },
     });
@@ -294,7 +357,7 @@ app.delete("/api/uploads/:filename", async (req, res) => {
     if (!file) {
       return res.status(404).json({ error: "Arquivo não encontrado." });
     }
-    await fs.promises.unlink(path.join(uploadDirectory, filename));
+    await removeStoredFile(file);
     res.status(204).end();
   } catch (error) {
     if (error.code === "ENOENT") {
@@ -307,9 +370,20 @@ app.delete("/api/uploads/:filename", async (req, res) => {
 
 app.get("/api/slide", async (req, res) => {
   try {
-    const media = await prisma.slideMedia.findMany({
+    const savedMedia = await prisma.slideMedia.findMany({
       orderBy: { position: "asc" },
     });
+    const media = (
+      await Promise.all(
+        savedMedia.map(async (item) => {
+          if (!(await sourceExists(item.source))) return null;
+          if (item.overlaySource && !(await sourceExists(item.overlaySource))) {
+            return { ...item, overlaySource: null, overlayType: null };
+          }
+          return item;
+        }),
+      )
+    ).filter(Boolean);
     res.json(media);
   } catch (error) {
     console.error("Erro ao buscar mídias do slide:", error);
@@ -429,15 +503,18 @@ app.post("/api/slide/:id/overlay-from-library", async (req, res) => {
   const relativeSource = source.replace(/^\/+/, "");
   const filePath = path.resolve(publicDirectory, relativeSource);
   if (
-    !source.startsWith("/") ||
-    relativeSource.includes("..") ||
-    !filePath.startsWith(`${publicDirectory}${path.sep}`)
+    !isBlobSource(source) &&
+    (!source.startsWith("/") ||
+      relativeSource.includes("..") ||
+      !filePath.startsWith(`${publicDirectory}${path.sep}`))
   ) {
     return res.status(400).json({ error: "Mídia da biblioteca inválida." });
   }
   try {
-    const stats = await fs.promises.stat(filePath);
-    if (!stats.isFile()) throw new Error("Arquivo inválido");
+    if (!isBlobSource(source)) {
+      const stats = await fs.promises.stat(filePath);
+      if (!stats.isFile()) throw new Error("Arquivo inválido");
+    }
     const media = await prisma.slideMedia.update({
       where: { id: req.params.id },
       data: { overlaySource: source, overlayType: uploadedFileType(source) },
