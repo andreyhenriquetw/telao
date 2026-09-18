@@ -1954,15 +1954,17 @@
           showcaseStartTimer = setTimeout(startShowcase, 30000);
         });
       }
-      const socket = io();
-      socket.on("NOVA_VENDA", async (data) => {
-        data.ranking.forEach((item) =>
-          rankingSnapshot.set(item.id, Number(item.totalGasto)),
-        );
-        handleNewSale(data);
-      });
-      socket.on("RANKING_RESET", () => render([]));
-      socket.on("SLIDE_ATUALIZADO", refreshShowcase);
+      const socket = typeof io === "function" ? io() : null;
+      if (socket) {
+        socket.on("NOVA_VENDA", async (data) => {
+          data.ranking.forEach((item) =>
+            rankingSnapshot.set(item.id, Number(item.totalGasto)),
+          );
+          handleNewSale(data);
+        });
+        socket.on("RANKING_RESET", () => render([]));
+        socket.on("SLIDE_ATUALIZADO", refreshShowcase);
+      }
       load();
       loadShowcaseMedia();
       setInterval(refreshShowcase, 2000);

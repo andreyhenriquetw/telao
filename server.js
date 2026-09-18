@@ -298,11 +298,7 @@ app.delete("/api/uploads/:filename", async (req, res) => {
     if (!file) {
       return res.status(404).json({ error: "Arquivo não encontrado." });
     }
-    if (useBlobStorage) {
-      await del(file.source);
-    } else {
-      await fs.promises.unlink(path.join(uploadDirectory, filename));
-    }
+    await fs.promises.unlink(path.join(uploadDirectory, filename));
     await prisma.slideAsset.deleteMany({ source: file.source });
     res.status(204).end();
   } catch (error) {
