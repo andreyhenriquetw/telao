@@ -1825,6 +1825,20 @@
           showcase.classList.add("flex");
           requestAnimationFrame(() => showcase.classList.add("is-active"));
           for (const [index, media] of showcaseMedia.entries()) {
+            const mediaReady = await preloadShowcaseMedia(
+              media.source,
+              media.type,
+            );
+            if (currentRun !== showcaseRun) return;
+            if (!mediaReady) continue;
+            if (media.overlaySource) {
+              const overlayReady = await preloadShowcaseMedia(
+                media.overlaySource,
+                media.overlayType,
+              );
+              if (currentRun !== showcaseRun) return;
+              if (!overlayReady) continue;
+            }
             const activeMedia =
               media.type === "video" ? showcaseVideo : showcaseImage;
             const inactiveMedia =
@@ -1896,6 +1910,38 @@
           showcase.classList.remove("flex");
           showcase.classList.add("hidden");
         }
+      }
+      function preloadShowcaseMedia(source, type) {
+        if (!source) return Promise.resolve(true);
+        if (type === "video") {
+          return new Promise((resolve) => {
+            const video = document.createElement("video");
+            let settled = false;
+            const finish = (ready) => {
+              if (settled) return;
+              settled = true;
+              video.removeAttribute("src");
+              video.load();
+              resolve(ready);
+            };
+            video.muted = true;
+            video.preload = "auto";
+            video.addEventListener("canplay", () => finish(true), {
+              once: true,
+            });
+            video.addEventListener("error", () => finish(false), {
+              once: true,
+            });
+            video.src = source;
+            video.load();
+          });
+        }
+        return new Promise((resolve) => {
+          const image = new Image();
+          image.onload = () => resolve(true);
+          image.onerror = () => resolve(false);
+          image.src = source;
+        });
       }
       async function stopShowcase() {
         clearTimeout(showcaseStartTimer);
