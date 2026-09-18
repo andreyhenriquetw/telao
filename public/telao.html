@@ -1497,6 +1497,11 @@
       let lastAlertKey = "";
       let rabbitFrameRequest = 0;
       let rabbitRendering = false;
+      let showcaseRefreshPending = false;
+      const showcasePreloadCache = new Map();
+      const rabbitContext = rabbitCanvas.getContext("2d", {
+        willReadFrequently: true,
+      });
       async function loadShowcaseMedia() {
         try {
           const response = await fetch(`/api/slide?poll=${Date.now()}`, {
@@ -1535,31 +1540,38 @@
         return false;
       }
       async function refreshShowcase() {
-        const changed = await loadShowcaseMedia();
-        if (!changed) return;
-        await stopShowcase(true);
-        showcaseStartTimer = setTimeout(startShowcase, 150);
+        if (showcaseRefreshPending) return;
+        showcaseRefreshPending = true;
+        try {
+          const changed = await loadShowcaseMedia();
+          if (!changed) return;
+          await stopShowcase(true);
+          showcaseStartTimer = setTimeout(startShowcase, 150);
+        } finally {
+          showcaseRefreshPending = false;
+        }
       }
       function renderRabbitFrame() {
         if (rabbitVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+          const renderWidth = Math.min(rabbitVideo.videoWidth, 480);
+          const renderHeight = Math.round(
+            renderWidth * (rabbitVideo.videoHeight / rabbitVideo.videoWidth),
+          );
           if (
-            rabbitCanvas.width !== rabbitVideo.videoWidth ||
-            rabbitCanvas.height !== rabbitVideo.videoHeight
+            rabbitCanvas.width !== renderWidth ||
+            rabbitCanvas.height !== renderHeight
           ) {
-            rabbitCanvas.width = rabbitVideo.videoWidth;
-            rabbitCanvas.height = rabbitVideo.videoHeight;
+            rabbitCanvas.width = renderWidth;
+            rabbitCanvas.height = renderHeight;
           }
-          const context = rabbitCanvas.getContext("2d", {
-            willReadFrequently: true,
-          });
-          context.drawImage(
+          rabbitContext.drawImage(
             rabbitVideo,
             0,
             0,
             rabbitCanvas.width,
             rabbitCanvas.height,
           );
-          const frame = context.getImageData(
+          const frame = rabbitContext.getImageData(
             0,
             0,
             rabbitCanvas.width,
@@ -1578,7 +1590,7 @@
               );
             }
           }
-          context.putImageData(frame, 0, 0);
+          rabbitContext.putImageData(frame, 0, 0);
         }
         if (rabbitRendering) {
           rabbitFrameRequest = requestAnimationFrame(renderRabbitFrame);
@@ -1946,35 +1958,44 @@
       }
       function preloadShowcaseMedia(source, type) {
         if (!source) return Promise.resolve(true);
-        if (type === "video") {
-          return new Promise((resolve) => {
-            const video = document.createElement("video");
-            let settled = false;
-            const finish = (ready) => {
-              if (settled) return;
-              settled = true;
-              video.removeAttribute("src");
-              video.load();
-              resolve(ready);
-            };
-            video.muted = true;
-            video.preload = "auto";
-            video.addEventListener("canplay", () => finish(true), {
-              once: true,
-            });
-            video.addEventListener("error", () => finish(false), {
-              once: true,
-            });
-            video.src = source;
-            video.load();
-          });
-        }
-        return new Promise((resolve) => {
-          const image = new Image();
-          image.onload = () => resolve(true);
-          image.onerror = () => resolve(false);
-          image.src = source;
-        });
+        const cacheKey = `${type}:${source}`;
+        const cached = showcasePreloadCache.get(cacheKey);
+        if (cached) return cached;
+        const preload =
+          type === "video"
+            ? new Promise((resolve) => {
+                const video = document.createElement("video");
+                let settled = false;
+                const finish = (ready) => {
+                  if (settled) return;
+                  settled = true;
+                  video.removeAttribute("src");
+                  video.load();
+                  if (!ready) showcasePreloadCache.delete(cacheKey);
+                  resolve(ready);
+                };
+                video.muted = true;
+                video.preload = "auto";
+                video.addEventListener("canplay", () => finish(true), {
+                  once: true,
+                });
+                video.addEventListener("error", () => finish(false), {
+                  once: true,
+                });
+                video.src = source;
+                video.load();
+              })
+            : new Promise((resolve) => {
+                const image = new Image();
+                image.onload = () => resolve(true);
+                image.onerror = () => {
+                  showcasePreloadCache.delete(cacheKey);
+                  resolve(false);
+                };
+                image.src = source;
+              });
+        showcasePreloadCache.set(cacheKey, preload);
+        return preload;
       }
       async function stopShowcase(keepVisible = false) {
         clearTimeout(showcaseStartTimer);
