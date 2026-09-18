@@ -1445,8 +1445,12 @@
       const rabbitVideo = document.querySelector("#rabbit-video");
       const rabbitCanvas = document.querySelector("#rabbit-canvas");
       const showcase = document.querySelector("#showcase");
-      const showcaseImages = [...showcase.querySelectorAll("img.showcase-image")];
-      const showcaseVideos = [...showcase.querySelectorAll("video.showcase-video")];
+      const showcaseImages = [
+        ...showcase.querySelectorAll("img.showcase-image"),
+      ];
+      const showcaseVideos = [
+        ...showcase.querySelectorAll("video.showcase-video"),
+      ];
       const showcaseOverlayImages = [
         ...showcase.querySelectorAll("img.showcase-overlay"),
       ];
@@ -1907,8 +1911,10 @@
               showcaseOverlayVideos[inactiveLayerIndex].classList.add(
                 "is-leaving",
               );
-              showcaseOverlayImages[activeLayerIndex].className = "showcase-overlay";
-              showcaseOverlayVideos[activeLayerIndex].className = "showcase-overlay";
+              showcaseOverlayImages[activeLayerIndex].className =
+                "showcase-overlay";
+              showcaseOverlayVideos[activeLayerIndex].className =
+                "showcase-overlay";
               showcaseOverlayImages[activeLayerIndex].removeAttribute("src");
               showcaseOverlayVideos[activeLayerIndex].removeAttribute("src");
               showcaseOverlayVideos[activeLayerIndex].pause();
