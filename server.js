@@ -14,6 +14,7 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 const prisma = new PrismaClient();
 const port = Number(process.env.PORT) || 3000;
+const isVercel = Boolean(process.env.VERCEL);
 
 function parseValor(valor) {
   const texto = String(valor ?? "")
@@ -53,7 +54,7 @@ const publicDirectory = path.join(__dirname, "public");
 app.use(express.static(publicDirectory));
 
 const uploadDirectory = path.join(publicDirectory, "uploads");
-fs.mkdirSync(uploadDirectory, { recursive: true });
+if (!isVercel) fs.mkdirSync(uploadDirectory, { recursive: true });
 const upload = multer({
   storage: multer.diskStorage({
     destination: uploadDirectory,
@@ -89,7 +90,13 @@ async function storeFile(file) {
 }
 
 async function storedFiles() {
-  const filenames = await fs.promises.readdir(uploadDirectory);
+  let filenames;
+  try {
+    filenames = await fs.promises.readdir(uploadDirectory);
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  }
   return Promise.all(
     filenames.map(async (filename) => {
       const stats = await fs.promises.stat(
