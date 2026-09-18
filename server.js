@@ -72,6 +72,8 @@ const upload = multer({
   },
 });
 
+app.get("/", (req, res) => res.redirect("/telao.html"));
+
 function mediaType(file) {
   return file.mimetype.startsWith("video/") ? "video" : "image";
 }
