@@ -1,5 +1,16 @@
 require("dotenv").config();
 
+const configuredDatabaseUrl = process.env.DATABASE_URL?.trim();
+if (
+  configuredDatabaseUrl &&
+  ((configuredDatabaseUrl.startsWith('"') &&
+    configuredDatabaseUrl.endsWith('"')) ||
+    (configuredDatabaseUrl.startsWith("'") &&
+      configuredDatabaseUrl.endsWith("'")))
+) {
+  process.env.DATABASE_URL = configuredDatabaseUrl.slice(1, -1);
+}
+
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
@@ -12,7 +23,12 @@ const { PrismaClient } = require("@prisma/client");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
-const prisma = new PrismaClient();
+const prisma =
+  globalThis.__telaoPrisma ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === "production" ? ["error"] : ["error", "warn"],
+  });
+if (!globalThis.__telaoPrisma) globalThis.__telaoPrisma = prisma;
 const port = Number(process.env.PORT) || 3000;
 const isVercel = Boolean(process.env.VERCEL);
 
@@ -31,8 +47,18 @@ function databaseError(error) {
   if (!process.env.DATABASE_URL) {
     return "DATABASE_URL não está configurada nas variáveis da Vercel. Adicione a URL do Neon e faça um novo deploy.";
   }
-  if (error?.code === "P1001" || error?.code === "P1012") {
-    return "Banco de dados inacessivel. Substitua DATABASE_URL no arquivo .env pela URL real do Neon e reinicie o servidor.";
+  if (error?.code === "P1000") {
+    return "Credenciais do banco invalidas. Confira DATABASE_URL nas variaveis da Vercel.";
+  }
+  if (
+    error?.code === "P1001" ||
+    error?.code === "P1011" ||
+    error?.code === "P1012"
+  ) {
+    return "A Vercel nao conseguiu conectar ao Neon. Use a URL pooled do Neon com sslmode=require em DATABASE_URL.";
+  }
+  if (error?.code === "P2021") {
+    return "As tabelas do Prisma nao existem no Neon. Execute npx prisma db push no banco usado pela Vercel.";
   }
   if (error?.name === "PrismaClientInitializationError") {
     return "A Vercel não conseguiu conectar ao banco. Confira DATABASE_URL, SSL e permita conexões no Neon.";
@@ -773,14 +799,27 @@ app.post("/api/reset", async (req, res) => {
   }
 });
 
-app.get("/health", (req, res) =>
-  res.json({
+app.get("/health", async (req, res) => {
+  const result = {
     status: "ok",
     databaseConfigured: Boolean(process.env.DATABASE_URL),
+    databaseConnected: false,
     blobConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
     vercel: Boolean(process.env.VERCEL),
-  }),
-);
+  };
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    result.databaseConnected = true;
+    res.json(result);
+  } catch (error) {
+    console.error("Health check do banco falhou:", error);
+    res.status(503).json({
+      ...result,
+      status: "error",
+      error: databaseError(error),
+    });
+  }
+});
 
 app.use((error, req, res, next) => {
   console.error("Erro nao tratado na API:", error);
