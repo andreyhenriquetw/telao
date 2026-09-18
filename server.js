@@ -10,11 +10,13 @@ const { Server } = require("socket.io");
 const { PrismaClient } = require("@prisma/client");
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+const isVercel = Boolean(process.env.VERCEL);
+const server = isVercel ? null : http.createServer(app);
+const io = isVercel
+  ? { emit() {}, on() {} }
+  : new Server(server, { cors: { origin: "*" } });
 const prisma = new PrismaClient();
 const port = Number(process.env.PORT) || 3000;
-const isVercel = Boolean(process.env.VERCEL);
 
 function parseValor(valor) {
   const texto = String(valor ?? "")
@@ -37,14 +39,6 @@ function databaseError(error) {
   if (error?.name === "PrismaClientInitializationError") {
     return "A Vercel não conseguiu conectar ao banco. Confira DATABASE_URL, SSL e permita conexões no Neon.";
   }
-  const message = String(error?.message || "").toLowerCase();
-  if (
-    message.includes("blob") ||
-    message.includes("token") ||
-    message.includes("unauthorized")
-  ) {
-    return "Armazenamento de imagens não configurado. Crie uma Vercel Blob Store e adicione BLOB_READ_WRITE_TOKEN nas variáveis da Vercel.";
-  }
   return "Nao foi possivel concluir a operacao no banco de dados.";
 }
 
@@ -53,8 +47,11 @@ app.use(express.json());
 const publicDirectory = path.join(__dirname, "public");
 app.use(express.static(publicDirectory));
 
-const uploadDirectory = path.join(publicDirectory, "uploads");
-if (!isVercel) fs.mkdirSync(uploadDirectory, { recursive: true });
+const uploadDirectory = isVercel
+  ? path.join("/tmp", "telao-uploads")
+  : path.join(publicDirectory, "uploads");
+fs.mkdirSync(uploadDirectory, { recursive: true });
+if (isVercel) app.use("/uploads", express.static(uploadDirectory));
 const upload = multer({
   storage: multer.diskStorage({
     destination: uploadDirectory,
@@ -777,7 +774,6 @@ app.get("/health", (req, res) =>
   res.json({
     status: "ok",
     databaseConfigured: Boolean(process.env.DATABASE_URL),
-    blobConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
     vercel: Boolean(process.env.VERCEL),
   }),
 );
