@@ -821,7 +821,7 @@
         object-fit: cover;
         filter: drop-shadow(0 24px 46px #000b);
         opacity: 0;
-        transform: translate3d(12vw, 8vh, 0) scale(0.78) rotate(3deg);
+        transform: translate3d(12vw, 0, 0) scale(0.78) rotate(3deg);
       }
       .showcase-video {
         object-fit: cover;
@@ -833,14 +833,19 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
-        display: none;
+        visibility: hidden;
         opacity: 0;
         mix-blend-mode: normal;
         pointer-events: none;
+        transition: opacity 0.9s ease;
       }
       .showcase-overlay.is-active {
-        display: block;
+        visibility: visible;
         opacity: 1;
+      }
+      .showcase-overlay.is-leaving {
+        visibility: visible;
+        opacity: 0;
       }
       .showcase-image-contained {
         object-fit: contain;
@@ -855,12 +860,18 @@
           opacity 0.9s ease,
           transform 1.1s cubic-bezier(0.2, 0.8, 0.2, 1);
       }
+      .showcase-image.is-entering {
+        opacity: 1;
+        transition:
+          opacity 0.9s ease,
+          transform 1.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
       .showcase-image.is-leaving {
         opacity: 0;
-        transform: translate3d(-14vw, -7vh, 0) scale(0.84) rotate(-3deg);
+        transform: translate3d(-14vw, 0, 0) scale(0.84) rotate(-3deg);
         transition:
-          opacity 0.85s ease,
-          transform 0.85s cubic-bezier(0.7, 0, 0.84, 0.25);
+          opacity 0.45s ease,
+          transform 0.45s cubic-bezier(0.7, 0, 0.84, 0.25);
       }
       #flash::after {
         content: "";
@@ -1360,6 +1371,13 @@
       class="fixed inset-0 z-[70] hidden items-center justify-center"
     >
       <img class="showcase-image" alt="" />
+      <img class="showcase-image" alt="" />
+      <video
+        class="showcase-image showcase-video"
+        muted
+        playsinline
+        loop
+      ></video>
       <video
         class="showcase-image showcase-video"
         muted
@@ -1367,6 +1385,8 @@
         loop
       ></video>
       <img class="showcase-overlay" alt="" />
+      <img class="showcase-overlay" alt="" />
+      <video class="showcase-overlay" muted playsinline loop></video>
       <video class="showcase-overlay" muted playsinline loop></video>
     </div>
     <div
@@ -1425,11 +1445,15 @@
       const rabbitVideo = document.querySelector("#rabbit-video");
       const rabbitCanvas = document.querySelector("#rabbit-canvas");
       const showcase = document.querySelector("#showcase");
-      const showcaseImage = showcase.querySelector(".showcase-image");
-      const showcaseVideo = showcase.querySelector(".showcase-video");
-      const showcaseOverlayImage = showcase.querySelector(".showcase-overlay");
-      const showcaseOverlayVideo =
-        showcase.querySelectorAll(".showcase-overlay")[1];
+      const showcaseImages = [...showcase.querySelectorAll("img.showcase-image")];
+      const showcaseVideos = [...showcase.querySelectorAll("video.showcase-video")];
+      const showcaseOverlayImages = [
+        ...showcase.querySelectorAll("img.showcase-overlay"),
+      ];
+      const showcaseOverlayVideos = [
+        ...showcase.querySelectorAll("video.showcase-overlay"),
+      ];
+      let showcaseLayerIndex = 0;
       const fallbackShowcaseMedia = [
         {
           source: "/001.png",
@@ -1509,7 +1533,7 @@
       async function refreshShowcase() {
         const changed = await loadShowcaseMedia();
         if (!changed) return;
-        await stopShowcase();
+        await stopShowcase(true);
         showcaseStartTimer = setTimeout(startShowcase, 150);
       }
       function renderRabbitFrame() {
@@ -1821,10 +1845,8 @@
             await new Promise((resolve) => setTimeout(resolve, 30000));
           if (currentRun !== showcaseRun) return;
           firstRound = false;
-          showcase.classList.remove("hidden");
-          showcase.classList.add("flex");
-          requestAnimationFrame(() => showcase.classList.add("is-active"));
-          for (const [index, media] of showcaseMedia.entries()) {
+          let showcaseVisible = !showcase.classList.contains("hidden");
+          for (const media of showcaseMedia) {
             const mediaReady = await preloadShowcaseMedia(
               media.source,
               media.type,
@@ -1839,71 +1861,76 @@
               if (currentRun !== showcaseRun) return;
               if (!overlayReady) continue;
             }
+            const activeLayerIndex = showcaseLayerIndex;
+            const inactiveLayerIndex = 1 - activeLayerIndex;
             const activeMedia =
-              media.type === "video" ? showcaseVideo : showcaseImage;
+              media.type === "video"
+                ? showcaseVideos[activeLayerIndex]
+                : showcaseImages[activeLayerIndex];
             const inactiveMedia =
-              media.type === "video" ? showcaseImage : showcaseVideo;
-            inactiveMedia.className = "showcase-image";
-            activeMedia.className = `showcase-image${media.contain ? " showcase-image-contained" : ""}${media.stretch ? " showcase-image-stretched" : ""}`;
+              media.type === "video"
+                ? showcaseVideos[inactiveLayerIndex]
+                : showcaseImages[inactiveLayerIndex];
+            activeMedia.className = `showcase-image is-entering${media.contain ? " showcase-image-contained" : ""}${media.stretch ? " showcase-image-stretched" : ""}`;
             if (media.type === "video") {
-              showcaseVideo.src = media.source;
-              showcaseVideo.currentTime = 0;
-              showcaseVideo.play().catch(() => {});
+              activeMedia.src = media.source;
+              activeMedia.currentTime = 0;
+              activeMedia.play().catch(() => {});
             } else {
-              showcaseImage.src = media.source;
+              activeMedia.src = media.source;
             }
-            showcaseOverlayImage.className = "showcase-overlay";
-            showcaseOverlayVideo.className = "showcase-overlay";
-            showcaseOverlayImage.removeAttribute("src");
-            showcaseOverlayVideo.removeAttribute("src");
-            showcaseOverlayVideo.pause();
             if (media.overlaySource) {
               const activeOverlay =
                 media.overlayType === "video"
-                  ? showcaseOverlayVideo
-                  : showcaseOverlayImage;
-              const inactiveOverlay =
-                media.overlayType === "video"
-                  ? showcaseOverlayImage
-                  : showcaseOverlayVideo;
-              inactiveOverlay.className = "showcase-overlay";
+                  ? showcaseOverlayVideos[activeLayerIndex]
+                  : showcaseOverlayImages[activeLayerIndex];
+              showcaseOverlayImages[inactiveLayerIndex].classList.add(
+                "is-leaving",
+              );
+              showcaseOverlayVideos[inactiveLayerIndex].classList.add(
+                "is-leaving",
+              );
+              showcaseOverlayImages[activeLayerIndex].className =
+                "showcase-overlay";
+              showcaseOverlayVideos[activeLayerIndex].className =
+                "showcase-overlay";
+              activeOverlay.className = "showcase-overlay is-active";
               activeOverlay.src = media.overlaySource;
-              activeOverlay.classList.add("is-active");
               if (media.overlayType === "video") {
-                showcaseOverlayVideo.currentTime = 0;
-                showcaseOverlayVideo.play().catch(() => {});
+                activeOverlay.currentTime = 0;
+                activeOverlay.play().catch(() => {});
               }
             } else {
-              showcaseOverlayImage.className = "showcase-overlay";
-              showcaseOverlayVideo.className = "showcase-overlay";
-            }
-            void showcaseImage.offsetWidth;
-            requestAnimationFrame(() => {
-              requestAnimationFrame(() =>
-                activeMedia.classList.add("is-visible"),
+              showcaseOverlayImages[inactiveLayerIndex].classList.add(
+                "is-leaving",
               );
+              showcaseOverlayVideos[inactiveLayerIndex].classList.add(
+                "is-leaving",
+              );
+              showcaseOverlayImages[activeLayerIndex].className = "showcase-overlay";
+              showcaseOverlayVideos[activeLayerIndex].className = "showcase-overlay";
+              showcaseOverlayImages[activeLayerIndex].removeAttribute("src");
+              showcaseOverlayVideos[activeLayerIndex].removeAttribute("src");
+              showcaseOverlayVideos[activeLayerIndex].pause();
+            }
+            if (!showcaseVisible) {
+              showcase.classList.remove("hidden");
+              showcase.classList.add("flex", "is-active");
+              showcaseVisible = true;
+            }
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                activeMedia.classList.add("is-visible");
+                inactiveMedia.classList.add("is-leaving");
+              });
             });
+            showcaseLayerIndex = inactiveLayerIndex;
             await new Promise((resolve) => setTimeout(resolve, media.duration));
             if (currentRun !== showcaseRun) return;
-            activeMedia.classList.remove("is-visible");
-            activeMedia.classList.add("is-leaving");
-            const leavingOverlay =
-              media.overlayType === "video"
-                ? showcaseOverlayVideo
-                : showcaseOverlayImage;
-            leavingOverlay.classList.remove("is-active");
             if (media.overlayType === "video") {
-              showcaseOverlayVideo.pause();
+              showcaseOverlayVideos[activeLayerIndex].pause();
             }
-            if (media.type === "video") showcaseVideo.pause();
-            leavingOverlay.removeAttribute("src");
-            if (index < showcaseMedia.length - 1) {
-              activeMedia.className = "showcase-image";
-              showcaseOverlayImage.className = "showcase-overlay";
-              showcaseOverlayVideo.className = "showcase-overlay";
-              showcaseOverlayImage.removeAttribute("src");
-              showcaseOverlayVideo.removeAttribute("src");
-            }
+            if (media.type === "video") activeMedia.pause();
           }
           showcase.classList.remove("is-active");
           await new Promise((resolve) => setTimeout(resolve, 800));
@@ -1943,20 +1970,38 @@
           image.src = source;
         });
       }
-      async function stopShowcase() {
+      async function stopShowcase(keepVisible = false) {
         clearTimeout(showcaseStartTimer);
         showcaseStartTimer = null;
         showcaseRun += 1;
         showcaseStarted = false;
-        showcase.classList.remove("is-active");
-        showcase.classList.remove("flex");
-        showcase.classList.add("hidden");
-        showcaseImage.className = "showcase-image";
-        showcaseVideo.pause();
-        showcaseVideo.className = "showcase-image showcase-video";
-        showcaseOverlayVideo.pause();
-        showcaseOverlayImage.removeAttribute("src");
-        showcaseOverlayVideo.removeAttribute("src");
+        const wasVisible = !showcase.classList.contains("hidden");
+        if (keepVisible && wasVisible) {
+          showcase.classList.add("flex", "is-active");
+          showcase.classList.remove("hidden");
+        } else {
+          showcase.classList.remove("is-active", "flex");
+          showcase.classList.add("hidden");
+        }
+        showcaseImages.forEach((image) => {
+          image.className = "showcase-image";
+          image.removeAttribute("src");
+        });
+        showcaseVideos.forEach((video) => {
+          video.pause();
+          video.className = "showcase-image showcase-video";
+          video.removeAttribute("src");
+        });
+        showcaseOverlayImages.forEach((image) => {
+          image.className = "showcase-overlay";
+          image.removeAttribute("src");
+        });
+        showcaseOverlayVideos.forEach((video) => {
+          video.pause();
+          video.className = "showcase-overlay";
+          video.removeAttribute("src");
+        });
+        showcaseLayerIndex = 0;
       }
       function celebrate(venda, transacao, afterAlert) {
         const currentFlashRun = ++flashRun;
