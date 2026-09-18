@@ -79,8 +79,11 @@ app.use(express.json());
 const publicDirectory = path.join(__dirname, "public");
 app.use(express.static(publicDirectory));
 
-const uploadDirectory = path.join(publicDirectory, "uploads");
-if (!isVercel) fs.mkdirSync(uploadDirectory, { recursive: true });
+const uploadDirectory = isVercel
+  ? path.join("/tmp", "telao-uploads")
+  : path.join(publicDirectory, "uploads");
+fs.mkdirSync(uploadDirectory, { recursive: true });
+app.use("/uploads", express.static(uploadDirectory));
 const upload = multer({
   storage: multer.diskStorage({
     destination: uploadDirectory,
@@ -145,46 +148,17 @@ function uploadedFileType(filename) {
   return /\.(mp4|webm|mov|m4v|avi)$/i.test(filename) ? "video" : "image";
 }
 
-async function rememberAsset(source, role) {
-  return prisma.slideAsset.upsert({
-    where: { source },
-    update: { role },
-    create: { source, role },
-  });
-}
-
 app.get("/api/uploads", async (req, res) => {
   try {
-    const [storedResult, scenesResult, assetsResult] = await Promise.allSettled(
-      [
-        storedFiles(),
-        prisma.slideMedia.findMany({
-          select: { source: true, overlaySource: true },
-        }),
-        prisma.slideAsset.findMany(),
-      ],
-    );
-    const stored =
-      storedResult.status === "fulfilled" ? storedResult.value : [];
-    const scenes =
-      scenesResult.status === "fulfilled" ? scenesResult.value : [];
-    const assets =
-      assetsResult.status === "fulfilled" ? assetsResult.value : [];
-    if (
-      scenesResult.status === "rejected" ||
-      assetsResult.status === "rejected"
-    ) {
-      console.warn(
-        "Banco indisponível ao listar uploads; retornando arquivos locais apenas.",
-      );
-    }
+    const [stored, scenes] = await Promise.all([
+      storedFiles(),
+      prisma.slideMedia.findMany({
+        select: { source: true, overlaySource: true },
+      }),
+    ]);
     const mainUsage = new Map();
     const backgroundUsage = new Map();
-    const backgroundSources = new Set(
-      assets
-        .filter((asset) => asset.role === "background")
-        .map((asset) => asset.source),
-    );
+    const backgroundSources = new Set();
     const sceneSources = new Set();
     for (const scene of scenes) {
       if (scene.source) {
@@ -199,18 +173,6 @@ app.get("/api/uploads", async (req, res) => {
           (backgroundUsage.get(scene.overlaySource) || 0) + 1,
         );
       }
-    }
-    if (assetsResult.status === "fulfilled") {
-      await Promise.all(
-        [...backgroundSources].map((source) =>
-          rememberAsset(source, "background").catch((error) => {
-            console.warn(
-              "Não foi possível registrar asset de background:",
-              error,
-            );
-          }),
-        ),
-      );
     }
     const storedSources = new Set(stored.map((file) => file.source));
     const uploadFiles = stored.map((file) => ({
@@ -292,7 +254,6 @@ app.post("/api/slide/from-library", async (req, res) => {
           : "cover",
       },
     });
-    await rememberAsset(media.source, "media");
     io.emit("SLIDE_ATUALIZADO");
     res.status(201).json(media);
   } catch (error) {
@@ -334,7 +295,6 @@ app.delete("/api/uploads/:filename", async (req, res) => {
       return res.status(404).json({ error: "Arquivo não encontrado." });
     }
     await fs.promises.unlink(path.join(uploadDirectory, filename));
-    await prisma.slideAsset.deleteMany({ source: file.source });
     res.status(204).end();
   } catch (error) {
     if (error.code === "ENOENT") {
@@ -391,9 +351,6 @@ app.post(
           overlayType: overlayFile ? mediaType(overlayFile) : null,
         },
       });
-      await rememberAsset(media.source, "media");
-      if (media.overlaySource)
-        await rememberAsset(media.overlaySource, "background");
       io.emit("SLIDE_ATUALIZADO");
       res.status(201).json(media);
     } catch (error) {
@@ -485,7 +442,6 @@ app.post("/api/slide/:id/overlay-from-library", async (req, res) => {
       where: { id: req.params.id },
       data: { overlaySource: source, overlayType: uploadedFileType(source) },
     });
-    await rememberAsset(source, "background");
     io.emit("SLIDE_ATUALIZADO");
     res.json(media);
   } catch (error) {
