@@ -634,7 +634,7 @@
           }
           if (health.blobConfigured) {
             const { upload } =
-              await import("https://esm.sh/@vercel/blob/client@2.8.0");
+              await import("https://cdn.jsdelivr.net/npm/@vercel/blob@2.8.0/client/+esm");
             const uploadDirect = (file) =>
               upload(file.name, file, {
                 access: "public",
@@ -751,7 +751,7 @@
           let response;
           if (health.blobConfigured) {
             const { upload } =
-              await import("https://esm.sh/@vercel/blob/client@2.8.0");
+              await import("https://cdn.jsdelivr.net/npm/@vercel/blob@2.8.0/client/+esm");
             const uploaded = await upload(file.name, file, {
               access: "public",
               handleUploadUrl: "/api/blob-upload",
