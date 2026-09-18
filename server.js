@@ -543,6 +543,24 @@ app.post(
   },
 );
 
+app.post("/api/slide/:id/overlay-from-blob", async (req, res) => {
+  const { source, type } = req.body;
+  if (!isBlobSource(source) || !/^(image|video)$/.test(type)) {
+    return res.status(400).json({ error: "Background inválido." });
+  }
+  try {
+    const media = await prisma.slideMedia.update({
+      where: { id: req.params.id },
+      data: { overlaySource: source, overlayType: type },
+    });
+    io.emit("SLIDE_ATUALIZADO");
+    res.json(media);
+  } catch (error) {
+    console.error("Erro ao aplicar background enviado diretamente:", error);
+    res.status(503).json({ error: databaseError(error) });
+  }
+});
+
 app.delete("/api/slide/:id/overlay", async (req, res) => {
   try {
     const media = await prisma.slideMedia.update({

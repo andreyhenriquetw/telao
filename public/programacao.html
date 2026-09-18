@@ -740,13 +740,41 @@
         const card = event.target.closest("[data-slide-id]");
         const file = input?.files?.[0];
         if (!input || !card || !file) return;
-        const data = new FormData();
-        data.append("overlay", file);
         try {
-          const response = await fetch(
-            `/api/slide/${card.dataset.slideId}/overlay`,
-            { method: "POST", body: data },
-          );
+          const healthResponse = await fetch("/health", { cache: "no-store" });
+          const health = await healthResponse.json();
+          if (health.vercel && !health.blobConfigured) {
+            throw new Error(
+              "O armazenamento de uploads não está configurado na Vercel. Adicione BLOB_READ_WRITE_TOKEN e faça um novo deploy.",
+            );
+          }
+          let response;
+          if (health.blobConfigured) {
+            const { upload } =
+              await import("https://esm.sh/@vercel/blob/client@2.8.0");
+            const uploaded = await upload(file.name, file, {
+              access: "public",
+              handleUploadUrl: "/api/blob-upload",
+            });
+            response = await fetch(
+              `/api/slide/${card.dataset.slideId}/overlay-from-blob`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  source: uploaded.url,
+                  type: file.type.startsWith("video/") ? "video" : "image",
+                }),
+              },
+            );
+          } else {
+            const data = new FormData();
+            data.append("overlay", file);
+            response = await fetch(
+              `/api/slide/${card.dataset.slideId}/overlay`,
+              { method: "POST", body: data },
+            );
+          }
           const result = await readJson(response);
           if (!response.ok) throw new Error(result.error);
           await Promise.all([loadSlides(), loadLibrary()]);
