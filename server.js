@@ -6,7 +6,6 @@ const http = require("http");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
-const { del, list, put } = require("@vercel/blob");
 const { Server } = require("socket.io");
 const { PrismaClient } = require("@prisma/client");
 
@@ -54,28 +53,18 @@ const publicDirectory = path.join(__dirname, "public");
 app.use(express.static(publicDirectory));
 
 const uploadDirectory = path.join(publicDirectory, "uploads");
-const isVercel = Boolean(process.env.VERCEL);
-const hasBlobToken = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
-const useBlobStorage = hasBlobToken;
-if (isVercel && !hasBlobToken) {
-  console.warn(
-    "Vercel detectada sem BLOB_READ_WRITE_TOKEN. O app continuará em modo local temporário, mas uploads persistentes exigem a variável de ambiente.",
-  );
-}
-if (!useBlobStorage) fs.mkdirSync(uploadDirectory, { recursive: true });
+fs.mkdirSync(uploadDirectory, { recursive: true });
 const upload = multer({
-  storage: useBlobStorage
-    ? multer.memoryStorage()
-    : multer.diskStorage({
-        destination: uploadDirectory,
-        filename: (req, file, callback) => {
-          const extension = path.extname(file.originalname).toLowerCase();
-          callback(
-            null,
-            `${Date.now()}-${Math.random().toString(36).slice(2)}${extension}`,
-          );
-        },
-      }),
+  storage: multer.diskStorage({
+    destination: uploadDirectory,
+    filename: (req, file, callback) => {
+      const extension = path.extname(file.originalname).toLowerCase();
+      callback(
+        null,
+        `${Date.now()}-${Math.random().toString(36).slice(2)}${extension}`,
+      );
+    },
+  }),
   limits: { fileSize: 150 * 1024 * 1024 },
   fileFilter: (req, file, callback) => {
     callback(null, /^(image|video)\//.test(file.mimetype));
@@ -91,44 +80,15 @@ function mediaUrl(file) {
 }
 
 async function storeFile(file) {
-  if (!useBlobStorage) {
-    return {
-      filename: file.filename,
-      source: mediaUrl(file),
-      size: file.size,
-      updatedAt: new Date(),
-    };
-  }
-  if (!hasBlobToken) {
-    const error = new Error("BLOB_READ_WRITE_TOKEN ausente");
-    error.code = "BLOB_CONFIG_MISSING";
-    throw error;
-  }
-  const extension = path.extname(file.originalname).toLowerCase();
-  const blob = await put(
-    `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}${extension}`,
-    file.buffer,
-    { access: "public", contentType: file.mimetype },
-  );
   return {
-    filename: path.basename(blob.pathname),
-    source: blob.url,
+    filename: file.filename,
+    source: mediaUrl(file),
     size: file.size,
     updatedAt: new Date(),
   };
 }
 
 async function storedFiles() {
-  if (useBlobStorage) {
-    const result = await list();
-    return result.blobs.map((blob) => ({
-      filename: path.basename(blob.pathname),
-      source: blob.url,
-      type: uploadedFileType(blob.pathname),
-      size: blob.size,
-      updatedAt: blob.uploadedAt,
-    }));
-  }
   const filenames = await fs.promises.readdir(uploadDirectory);
   return Promise.all(
     filenames.map(async (filename) => {
