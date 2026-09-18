@@ -107,26 +107,35 @@ const upload = multer({
 app.get("/", (req, res) => res.redirect("/telao.html"));
 
 app.post("/api/blob-upload", async (req, res) => {
-  if (!isVercel || !process.env.BLOB_READ_WRITE_TOKEN) {
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN?.trim();
+  if (!blobToken) {
     return res.status(503).json({
-      error: "Upload persistente não está configurado neste ambiente.",
+      error:
+        "BLOB_READ_WRITE_TOKEN não está configurado neste ambiente. Conecte o Blob ao projeto e faça um novo deploy.",
     });
   }
   try {
     const jsonResponse = await handleUpload({
+      token: blobToken,
       body: req.body,
       request: req,
-      onBeforeGenerateToken: async () => ({
+      onBeforeGenerateToken: async (pathname, clientPayload, multipart) => ({
         allowedContentTypes: ["image/*", "video/*"],
         maximumSizeInBytes: 150 * 1024 * 1024,
         addRandomSuffix: true,
+        tokenPayload: clientPayload,
       }),
       onUploadCompleted: async () => {},
     });
     res.json(jsonResponse);
   } catch (error) {
     console.error("Erro ao preparar upload direto:", error);
-    res.status(400).json({ error: "Não foi possível preparar o upload." });
+    res.status(400).json({
+      error:
+        process.env.NODE_ENV === "production"
+          ? "Não foi possível autenticar o upload no Vercel Blob. Confira se BLOB_READ_WRITE_TOKEN está conectado ao projeto e faça um novo deploy."
+          : error.message || "Não foi possível preparar o upload.",
+    });
   }
 });
 
@@ -140,7 +149,7 @@ function mediaUrl(file) {
 
 async function storeFile(file) {
   if (isVercel) {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    if (!process.env.BLOB_READ_WRITE_TOKEN?.trim()) {
       const error = new Error("BLOB_READ_WRITE_TOKEN ausente");
       error.code = "BLOB_NOT_CONFIGURED";
       throw error;
@@ -914,7 +923,7 @@ app.get("/health", async (req, res) => {
     status: "ok",
     databaseConfigured: Boolean(process.env.DATABASE_URL),
     databaseConnected: false,
-    blobConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+    blobConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim()),
     vercel: Boolean(process.env.VERCEL),
   };
   try {
