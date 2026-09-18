@@ -621,21 +621,59 @@
         save.disabled = true;
         slideMessage.textContent = "Enviando arquivos...";
         try {
-          const data = new FormData();
-          data.append("media", document.querySelector("#slide-media").files[0]);
-          data.append(
-            "overlay",
-            document.querySelector("#slide-overlay").files[0] || "",
-          );
-          data.append(
-            "duration",
-            document.querySelector("#slide-duration").value,
-          );
-          data.append("fit", document.querySelector("#slide-fit").value);
-          const response = await fetch("/api/slide", {
-            method: "POST",
-            body: data,
-          });
+          const mediaFile = document.querySelector("#slide-media").files[0];
+          const overlayFile = document.querySelector("#slide-overlay").files[0];
+          if (!mediaFile) throw new Error("Escolha uma imagem ou vídeo.");
+          const healthResponse = await fetch("/health", { cache: "no-store" });
+          const health = await healthResponse.json();
+          let response;
+          if (health.vercel && !health.blobConfigured) {
+            throw new Error(
+              "O armazenamento de uploads não está configurado na Vercel. Adicione BLOB_READ_WRITE_TOKEN e faça um novo deploy.",
+            );
+          }
+          if (health.blobConfigured) {
+            const { upload } =
+              await import("https://esm.sh/@vercel/blob/client@2.8.0");
+            const uploadDirect = (file) =>
+              upload(file.name, file, {
+                access: "public",
+                handleUploadUrl: "/api/blob-upload",
+              });
+            const uploadedMedia = await uploadDirect(mediaFile);
+            const uploadedOverlay = overlayFile
+              ? await uploadDirect(overlayFile)
+              : null;
+            response = await fetch("/api/slide/from-blob", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                source: uploadedMedia.url,
+                type: mediaFile.type.startsWith("video/") ? "video" : "image",
+                overlaySource: uploadedOverlay?.url || null,
+                overlayType: overlayFile?.type.startsWith("video/")
+                  ? "video"
+                  : overlayFile
+                    ? "image"
+                    : null,
+                duration: document.querySelector("#slide-duration").value,
+                fit: document.querySelector("#slide-fit").value,
+              }),
+            });
+          } else {
+            const data = new FormData();
+            data.append("media", mediaFile);
+            if (overlayFile) data.append("overlay", overlayFile);
+            data.append(
+              "duration",
+              document.querySelector("#slide-duration").value,
+            );
+            data.append("fit", document.querySelector("#slide-fit").value);
+            response = await fetch("/api/slide", {
+              method: "POST",
+              body: data,
+            });
+          }
           const result = await readJson(response);
           if (!response.ok) throw new Error(result.error);
           closeSlideModal();

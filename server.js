@@ -17,7 +17,7 @@ const http = require("http");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
-const { del, list, put } = require("@vercel/blob");
+const { del, handleUpload, list, put } = require("@vercel/blob");
 const { Server } = require("socket.io");
 const { PrismaClient } = require("@prisma/client");
 
@@ -105,6 +105,30 @@ const upload = multer({
 });
 
 app.get("/", (req, res) => res.redirect("/telao.html"));
+
+app.post("/api/blob-upload", async (req, res) => {
+  if (!isVercel || !process.env.BLOB_READ_WRITE_TOKEN) {
+    return res.status(503).json({
+      error: "Upload persistente não está configurado neste ambiente.",
+    });
+  }
+  try {
+    const jsonResponse = await handleUpload({
+      body: req.body,
+      request: req,
+      onBeforeGenerateToken: async () => ({
+        allowedContentTypes: ["image/*", "video/*"],
+        maximumSizeInBytes: 150 * 1024 * 1024,
+        addRandomSuffix: true,
+      }),
+      onUploadCompleted: async () => {},
+    });
+    res.json(jsonResponse);
+  } catch (error) {
+    console.error("Erro ao preparar upload direto:", error);
+    res.status(400).json({ error: "Não foi possível preparar o upload." });
+  }
+});
 
 function mediaType(file) {
   return file.mimetype.startsWith("video/") ? "video" : "image";
@@ -433,6 +457,41 @@ app.post(
     }
   },
 );
+
+app.post("/api/slide/from-blob", async (req, res) => {
+  const { source, type, overlaySource, overlayType, duration, fit } = req.body;
+  const seconds = Number(duration);
+  if (
+    !isBlobSource(source) ||
+    !Number.isFinite(seconds) ||
+    seconds < 1 ||
+    !/^(image|video)$/.test(type) ||
+    (overlaySource && !isBlobSource(overlaySource))
+  ) {
+    return res.status(400).json({ error: "Dados da cena inválidos." });
+  }
+  try {
+    const last = await prisma.slideMedia.findFirst({
+      orderBy: { position: "desc" },
+    });
+    const media = await prisma.slideMedia.create({
+      data: {
+        position: (last?.position || 0) + 1,
+        type,
+        source,
+        duration: Math.round(seconds * 1000),
+        fit: ["cover", "contain", "fill"].includes(fit) ? fit : "cover",
+        overlaySource: overlaySource || null,
+        overlayType: overlaySource ? overlayType : null,
+      },
+    });
+    io.emit("SLIDE_ATUALIZADO");
+    res.status(201).json(media);
+  } catch (error) {
+    console.error("Erro ao criar cena com upload direto:", error);
+    res.status(503).json({ error: databaseError(error) });
+  }
+});
 
 app.patch("/api/slide/:id", async (req, res) => {
   const duration = Number(req.body.duration);
