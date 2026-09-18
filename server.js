@@ -115,17 +115,20 @@ app.post("/api/blob-upload", async (req, res) => {
     });
   }
   try {
+    if (!req.body || typeof req.body !== "object") {
+      return res.status(400).json({
+        error: "O corpo da solicitação do Blob não foi recebido como JSON.",
+      });
+    }
     const jsonResponse = await handleUpload({
       token: blobToken,
       body: req.body,
       request: req,
-      onBeforeGenerateToken: async (pathname, clientPayload, multipart) => ({
+      onBeforeGenerateToken: async () => ({
         allowedContentTypes: ["image/*", "video/*"],
         maximumSizeInBytes: 150 * 1024 * 1024,
         addRandomSuffix: true,
-        tokenPayload: clientPayload,
       }),
-      onUploadCompleted: async () => {},
     });
     res.json(jsonResponse);
   } catch (error) {
@@ -133,7 +136,7 @@ app.post("/api/blob-upload", async (req, res) => {
     res.status(400).json({
       error:
         process.env.NODE_ENV === "production"
-          ? "Não foi possível autenticar o upload no Vercel Blob. Confira se BLOB_READ_WRITE_TOKEN está conectado ao projeto e faça um novo deploy."
+          ? `Não foi possível autenticar o upload no Vercel Blob (${error.code || "configuração inválida"}). Confira BLOB_READ_WRITE_TOKEN e faça um novo deploy.`
           : error.message || "Não foi possível preparar o upload.",
     });
   }
