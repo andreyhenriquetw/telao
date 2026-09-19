@@ -1877,7 +1877,9 @@
           let showcaseVisible = !showcase.classList.contains("hidden");
           for (const media of showcaseMedia) {
             const playbackSource =
-              media.source === "/rita.mp4" ? "/rita.mp4?v=3" : media.source;
+              media.source === "/rita.mp4" || media.source === "/0919.mp4"
+                ? "/0919.mp4?v=1"
+                : media.source;
             const mediaReady = await preloadShowcaseMedia(
               playbackSource,
               media.type,
@@ -2034,7 +2036,7 @@
         showcaseVideos.forEach((video) => {
           video.pause();
           video.className = "showcase-image showcase-video";
-          if (video.dataset.showcaseSource?.startsWith("/rita.mp4?")) {
+          if (video.dataset.showcaseSource?.startsWith("/0919.mp4?")) {
             video.currentTime = 0;
           } else {
             video.removeAttribute("src");

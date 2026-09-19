@@ -974,7 +974,7 @@ io.on("connection", (socket) => {
 });
 
 async function ensureRitaSlide() {
-  const source = "/rita.mp4";
+  const source = "/0919.mp4";
   if (!(await sourceExists(source))) return;
 
   const existing = await prisma.slideMedia.findFirst({ where: { source } });
