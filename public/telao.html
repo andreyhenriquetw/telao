@@ -825,6 +825,17 @@
       }
       .showcase-video {
         object-fit: cover;
+        filter: none;
+        transform: none;
+      }
+      .showcase-video.is-entering,
+      .showcase-video.is-visible {
+        transform: none;
+        transition: opacity 0.25s linear;
+      }
+      .showcase-video.is-leaving {
+        transform: none;
+        transition: opacity 0.2s linear;
       }
       .showcase-overlay {
         position: absolute;
@@ -1866,7 +1877,7 @@
           let showcaseVisible = !showcase.classList.contains("hidden");
           for (const media of showcaseMedia) {
             const playbackSource =
-              media.source === "/rita.mp4" ? "/rita.mp4?v=2" : media.source;
+              media.source === "/rita.mp4" ? "/rita.mp4?v=3" : media.source;
             const mediaReady = await preloadShowcaseMedia(
               playbackSource,
               media.type,
