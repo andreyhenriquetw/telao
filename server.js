@@ -412,6 +412,7 @@ app.delete("/api/uploads/:filename", async (req, res) => {
 
 app.get("/api/slide", async (req, res) => {
   try {
+    await ensureRitaSlide();
     const savedMedia = await prisma.slideMedia.findMany({
       orderBy: { position: "asc" },
     });
@@ -964,9 +965,44 @@ io.on("connection", (socket) => {
   );
 });
 
+async function ensureRitaSlide() {
+  const source = "/rita.mp4";
+  if (!(await sourceExists(source))) return;
+
+  const existing = await prisma.slideMedia.findFirst({ where: { source } });
+  if (existing) {
+    if (existing.duration !== 30000 || existing.type !== "video") {
+      await prisma.slideMedia.update({
+        where: { id: existing.id },
+        data: { duration: 30000, type: "video" },
+      });
+    }
+    return;
+  }
+
+  const last = await prisma.slideMedia.findFirst({
+    orderBy: { position: "desc" },
+  });
+  await prisma.slideMedia.create({
+    data: {
+      position: (last?.position || 0) + 1,
+      type: "video",
+      source,
+      duration: 30000,
+      fit: "cover",
+    },
+  });
+  io.emit("SLIDE_ATUALIZADO");
+}
+
 if (require.main === module) {
-  server.listen(port, () => {
+  server.listen(port, async () => {
     console.log(`Servidor do Telao rodando em http://localhost:${port}`);
+    try {
+      await ensureRitaSlide();
+    } catch (error) {
+      console.error("Nao foi possivel adicionar rita.mp4 a programacao:", error);
+    }
   });
 }
 
