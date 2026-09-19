@@ -1865,8 +1865,10 @@
           firstRound = false;
           let showcaseVisible = !showcase.classList.contains("hidden");
           for (const media of showcaseMedia) {
+            const playbackSource =
+              media.source === "/rita.mp4" ? "/rita.mp4?v=2" : media.source;
             const mediaReady = await preloadShowcaseMedia(
-              media.source,
+              playbackSource,
               media.type,
             );
             if (currentRun !== showcaseRun) return;
@@ -1891,9 +1893,9 @@
                 : showcaseImages[inactiveLayerIndex];
             activeMedia.className = `showcase-image is-entering${media.contain ? " showcase-image-contained" : ""}${media.stretch ? " showcase-image-stretched" : ""}`;
             if (media.type === "video") {
-              if (activeMedia.dataset.showcaseSource !== media.source) {
-                activeMedia.dataset.showcaseSource = media.source;
-                activeMedia.src = media.source;
+              if (activeMedia.dataset.showcaseSource !== playbackSource) {
+                activeMedia.dataset.showcaseSource = playbackSource;
+                activeMedia.src = playbackSource;
                 activeMedia.load();
               }
               activeMedia.currentTime = 0;
@@ -2021,7 +2023,7 @@
         showcaseVideos.forEach((video) => {
           video.pause();
           video.className = "showcase-image showcase-video";
-          if (video.dataset.showcaseSource === "/rita.mp4") {
+          if (video.dataset.showcaseSource?.startsWith("/rita.mp4?")) {
             video.currentTime = 0;
           } else {
             video.removeAttribute("src");
