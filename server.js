@@ -78,7 +78,15 @@ function databaseError(error) {
 app.use(cors());
 app.use(express.json());
 const publicDirectory = path.join(__dirname, "public");
-app.use(express.static(publicDirectory));
+app.use(
+  express.static(publicDirectory, {
+    setHeaders: (res, filePath) => {
+      if (path.basename(filePath).toLowerCase() === "rita.mp4") {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      }
+    },
+  }),
+);
 
 const uploadDirectory = isVercel
   ? path.join("/tmp", "telao-uploads")

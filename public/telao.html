@@ -1377,12 +1377,14 @@
         muted
         playsinline
         loop
+        preload="auto"
       ></video>
       <video
         class="showcase-image showcase-video"
         muted
         playsinline
         loop
+        preload="auto"
       ></video>
       <img class="showcase-overlay" alt="" />
       <img class="showcase-overlay" alt="" />
@@ -1889,7 +1891,11 @@
                 : showcaseImages[inactiveLayerIndex];
             activeMedia.className = `showcase-image is-entering${media.contain ? " showcase-image-contained" : ""}${media.stretch ? " showcase-image-stretched" : ""}`;
             if (media.type === "video") {
-              activeMedia.src = media.source;
+              if (activeMedia.dataset.showcaseSource !== media.source) {
+                activeMedia.dataset.showcaseSource = media.source;
+                activeMedia.src = media.source;
+                activeMedia.load();
+              }
               activeMedia.currentTime = 0;
               activeMedia.play().catch(() => {});
             } else {
@@ -1969,8 +1975,6 @@
                 const finish = (ready) => {
                   if (settled) return;
                   settled = true;
-                  video.removeAttribute("src");
-                  video.load();
                   if (!ready) showcasePreloadCache.delete(cacheKey);
                   resolve(ready);
                 };
@@ -2017,7 +2021,12 @@
         showcaseVideos.forEach((video) => {
           video.pause();
           video.className = "showcase-image showcase-video";
-          video.removeAttribute("src");
+          if (video.dataset.showcaseSource === "/rita.mp4") {
+            video.currentTime = 0;
+          } else {
+            video.removeAttribute("src");
+            delete video.dataset.showcaseSource;
+          }
         });
         showcaseOverlayImages.forEach((image) => {
           image.className = "showcase-overlay";
