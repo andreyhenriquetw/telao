@@ -1523,12 +1523,18 @@
           if (!response.ok) return;
           const items = await response.json();
           if (items.length) {
-            const nextMedia = items.map((item) => ({
-              ...item,
-              duration: Number(item.duration),
-              contain: item.fit === "contain",
-              stretch: item.fit === "fill",
-            }));
+            const nextMedia = items.map((item) => {
+              const duration = Number(item.duration);
+              return {
+                ...item,
+                duration:
+                  Number.isFinite(duration) && duration >= 1000
+                    ? duration
+                    : 16000,
+                contain: item.fit === "contain",
+                stretch: item.fit === "fill",
+              };
+            });
             const nextSignature = JSON.stringify(
               nextMedia.map((item) => ({
                 id: item.id,
@@ -1868,12 +1874,8 @@
         showcaseStarted = true;
         restoreRabbitImage();
         const currentRun = ++showcaseRun;
-        let firstRound = true;
         while (currentRun === showcaseRun) {
-          if (!firstRound)
-            await new Promise((resolve) => setTimeout(resolve, 30000));
           if (currentRun !== showcaseRun) return;
-          firstRound = false;
           let showcaseVisible = !showcase.classList.contains("hidden");
           for (const media of showcaseMedia) {
             const playbackSource =
@@ -1971,10 +1973,6 @@
             }
             if (media.type === "video") activeMedia.pause();
           }
-          showcase.classList.remove("is-active");
-          await new Promise((resolve) => setTimeout(resolve, 800));
-          showcase.classList.remove("flex");
-          showcase.classList.add("hidden");
         }
       }
       function preloadShowcaseMedia(source, type) {
