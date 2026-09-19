@@ -1878,7 +1878,7 @@
           for (const media of showcaseMedia) {
             const playbackSource =
               media.source === "/rita.mp4" || media.source === "/0919.mp4"
-                ? "/0919.mp4?v=1"
+                ? "/0919.mp4?v=2"
                 : media.source;
             const mediaReady = await preloadShowcaseMedia(
               playbackSource,
@@ -1979,6 +1979,7 @@
       }
       function preloadShowcaseMedia(source, type) {
         if (!source) return Promise.resolve(true);
+        if (source.startsWith("/0919.mp4?")) return Promise.resolve(true);
         const cacheKey = `${type}:${source}`;
         const cached = showcasePreloadCache.get(cacheKey);
         if (cached) return cached;
