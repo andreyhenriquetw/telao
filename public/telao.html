@@ -1874,106 +1874,109 @@
         showcaseStarted = true;
         restoreRabbitImage();
         const currentRun = ++showcaseRun;
-        while (currentRun === showcaseRun) {
+        let showcaseVisible = !showcase.classList.contains("hidden");
+        for (const media of showcaseMedia) {
+          const playbackSource =
+            media.source === "/rita.mp4" || media.source === "/0919.mp4"
+              ? "/0919.mp4?v=2"
+              : media.source;
+          const mediaReady = await preloadShowcaseMedia(
+            playbackSource,
+            media.type,
+          );
           if (currentRun !== showcaseRun) return;
-          let showcaseVisible = !showcase.classList.contains("hidden");
-          for (const media of showcaseMedia) {
-            const playbackSource =
-              media.source === "/rita.mp4" || media.source === "/0919.mp4"
-                ? "/0919.mp4?v=2"
-                : media.source;
-            const mediaReady = await preloadShowcaseMedia(
-              playbackSource,
-              media.type,
+          if (!mediaReady) continue;
+          if (media.overlaySource) {
+            const overlayReady = await preloadShowcaseMedia(
+              media.overlaySource,
+              media.overlayType,
             );
             if (currentRun !== showcaseRun) return;
-            if (!mediaReady) continue;
-            if (media.overlaySource) {
-              const overlayReady = await preloadShowcaseMedia(
-                media.overlaySource,
-                media.overlayType,
-              );
-              if (currentRun !== showcaseRun) return;
-              if (!overlayReady) continue;
-            }
-            const activeLayerIndex = showcaseLayerIndex;
-            const inactiveLayerIndex = 1 - activeLayerIndex;
-            const activeMedia =
-              media.type === "video"
-                ? showcaseVideos[activeLayerIndex]
-                : showcaseImages[activeLayerIndex];
-            const inactiveMedia =
-              media.type === "video"
-                ? showcaseVideos[inactiveLayerIndex]
-                : showcaseImages[inactiveLayerIndex];
-            activeMedia.className = `showcase-image is-entering${media.contain ? " showcase-image-contained" : ""}${media.stretch ? " showcase-image-stretched" : ""}`;
-            if (media.type === "video") {
-              if (activeMedia.dataset.showcaseSource !== playbackSource) {
-                activeMedia.dataset.showcaseSource = playbackSource;
-                activeMedia.src = playbackSource;
-                activeMedia.load();
-              }
-              activeMedia.currentTime = 0;
-              activeMedia.play().catch(() => {});
-            } else {
-              activeMedia.src = media.source;
-            }
-            if (media.overlaySource) {
-              const activeOverlay =
-                media.overlayType === "video"
-                  ? showcaseOverlayVideos[activeLayerIndex]
-                  : showcaseOverlayImages[activeLayerIndex];
-              showcaseOverlayImages[inactiveLayerIndex].classList.add(
-                "is-leaving",
-              );
-              showcaseOverlayVideos[inactiveLayerIndex].classList.add(
-                "is-leaving",
-              );
-              showcaseOverlayImages[activeLayerIndex].className =
-                "showcase-overlay";
-              showcaseOverlayVideos[activeLayerIndex].className =
-                "showcase-overlay";
-              activeOverlay.className = "showcase-overlay is-active";
-              activeOverlay.src = media.overlaySource;
-              if (media.overlayType === "video") {
-                activeOverlay.currentTime = 0;
-                activeOverlay.play().catch(() => {});
-              }
-            } else {
-              showcaseOverlayImages[inactiveLayerIndex].classList.add(
-                "is-leaving",
-              );
-              showcaseOverlayVideos[inactiveLayerIndex].classList.add(
-                "is-leaving",
-              );
-              showcaseOverlayImages[activeLayerIndex].className =
-                "showcase-overlay";
-              showcaseOverlayVideos[activeLayerIndex].className =
-                "showcase-overlay";
-              showcaseOverlayImages[activeLayerIndex].removeAttribute("src");
-              showcaseOverlayVideos[activeLayerIndex].removeAttribute("src");
-              showcaseOverlayVideos[activeLayerIndex].pause();
-            }
-            if (!showcaseVisible) {
-              showcase.classList.remove("hidden");
-              showcase.classList.add("flex", "is-active");
-              showcaseVisible = true;
-            }
-            requestAnimationFrame(() => {
-              requestAnimationFrame(() => {
-                activeMedia.classList.add("is-visible");
-                inactiveMedia.classList.add("is-leaving");
-              });
-            });
-            showcaseLayerIndex = inactiveLayerIndex;
-            await new Promise((resolve) => setTimeout(resolve, media.duration));
-            if (currentRun !== showcaseRun) return;
-            if (media.overlayType === "video") {
-              showcaseOverlayVideos[activeLayerIndex].pause();
-            }
-            if (media.type === "video") activeMedia.pause();
+            if (!overlayReady) continue;
           }
+          const activeLayerIndex = showcaseLayerIndex;
+          const inactiveLayerIndex = 1 - activeLayerIndex;
+          const activeMedia =
+            media.type === "video"
+              ? showcaseVideos[activeLayerIndex]
+              : showcaseImages[activeLayerIndex];
+          const inactiveMedia =
+            media.type === "video"
+              ? showcaseVideos[inactiveLayerIndex]
+              : showcaseImages[inactiveLayerIndex];
+          activeMedia.className = `showcase-image is-entering${media.contain ? " showcase-image-contained" : ""}${media.stretch ? " showcase-image-stretched" : ""}`;
+          if (media.type === "video") {
+            if (activeMedia.dataset.showcaseSource !== playbackSource) {
+              activeMedia.dataset.showcaseSource = playbackSource;
+              activeMedia.src = playbackSource;
+              activeMedia.load();
+            }
+            activeMedia.currentTime = 0;
+            activeMedia.play().catch(() => {});
+          } else {
+            activeMedia.src = media.source;
+          }
+          if (media.overlaySource) {
+            const activeOverlay =
+              media.overlayType === "video"
+                ? showcaseOverlayVideos[activeLayerIndex]
+                : showcaseOverlayImages[activeLayerIndex];
+            showcaseOverlayImages[inactiveLayerIndex].classList.add(
+              "is-leaving",
+            );
+            showcaseOverlayVideos[inactiveLayerIndex].classList.add(
+              "is-leaving",
+            );
+            showcaseOverlayImages[activeLayerIndex].className =
+              "showcase-overlay";
+            showcaseOverlayVideos[activeLayerIndex].className =
+              "showcase-overlay";
+            activeOverlay.className = "showcase-overlay is-active";
+            activeOverlay.src = media.overlaySource;
+            if (media.overlayType === "video") {
+              activeOverlay.currentTime = 0;
+              activeOverlay.play().catch(() => {});
+            }
+          } else {
+            showcaseOverlayImages[inactiveLayerIndex].classList.add(
+              "is-leaving",
+            );
+            showcaseOverlayVideos[inactiveLayerIndex].classList.add(
+              "is-leaving",
+            );
+            showcaseOverlayImages[activeLayerIndex].className =
+              "showcase-overlay";
+            showcaseOverlayVideos[activeLayerIndex].className =
+              "showcase-overlay";
+            showcaseOverlayImages[activeLayerIndex].removeAttribute("src");
+            showcaseOverlayVideos[activeLayerIndex].removeAttribute("src");
+            showcaseOverlayVideos[activeLayerIndex].pause();
+          }
+          if (!showcaseVisible) {
+            showcase.classList.remove("hidden");
+            showcase.classList.add("flex", "is-active");
+            showcaseVisible = true;
+          }
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              activeMedia.classList.add("is-visible");
+              inactiveMedia.classList.add("is-leaving");
+            });
+          });
+          showcaseLayerIndex = inactiveLayerIndex;
+          await new Promise((resolve) => setTimeout(resolve, media.duration));
+          if (currentRun !== showcaseRun) return;
+          if (media.overlayType === "video") {
+            showcaseOverlayVideos[activeLayerIndex].pause();
+          }
+          if (media.type === "video") activeMedia.pause();
         }
+        if (currentRun !== showcaseRun) return;
+        showcase.classList.remove("is-active");
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        if (currentRun !== showcaseRun) return;
+        await stopShowcase();
+        showcaseStartTimer = setTimeout(startShowcase, 20000);
       }
       function preloadShowcaseMedia(source, type) {
         if (!source) return Promise.resolve(true);
