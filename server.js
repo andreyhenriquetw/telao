@@ -1001,7 +1001,10 @@ if (require.main === module) {
     try {
       await ensureRitaSlide();
     } catch (error) {
-      console.error("Nao foi possivel adicionar rita.mp4 a programacao:", error);
+      console.error(
+        "Nao foi possivel adicionar rita.mp4 a programacao:",
+        error,
+      );
     }
   });
 }
