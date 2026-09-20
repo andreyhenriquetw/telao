@@ -1912,19 +1912,16 @@
               ? showcaseVideos[inactiveLayerIndex]
               : showcaseImages[inactiveLayerIndex];
           activeMedia.className = `showcase-image is-entering${media.contain ? " showcase-image-contained" : ""}${media.stretch ? " showcase-image-stretched" : ""}`;
+          const resumeSeconds =
+            mediaIndex === resumeIndex ? resumeOffset / 1000 : 0;
           if (media.type === "video") {
-            if (activeMedia.dataset.showcaseSource !== playbackSource) {
-              activeMedia.dataset.showcaseSource = playbackSource;
-              activeMedia.src = playbackSource;
-              activeMedia.load();
-            }
-            seekShowcaseVideo(
+            await prepareShowcaseVideo(
               activeMedia,
-              mediaIndex === resumeIndex ? resumeOffset / 1000 : 0,
+              playbackSource,
+              resumeSeconds,
             );
-            activeMedia.play().catch(() => {});
           } else {
-            activeMedia.src = media.source;
+            await prepareShowcaseImage(activeMedia, media.source);
           }
           if (media.overlaySource) {
             const activeOverlay =
@@ -1941,15 +1938,16 @@
               "showcase-overlay";
             showcaseOverlayVideos[activeLayerIndex].className =
               "showcase-overlay";
-            activeOverlay.className = "showcase-overlay is-active";
-            activeOverlay.src = media.overlaySource;
             if (media.overlayType === "video") {
-              seekShowcaseVideo(
+              await prepareShowcaseVideo(
                 activeOverlay,
-                mediaIndex === resumeIndex ? resumeOffset / 1000 : 0,
+                media.overlaySource,
+                resumeSeconds,
               );
-              activeOverlay.play().catch(() => {});
+            } else {
+              await prepareShowcaseImage(activeOverlay, media.overlaySource);
             }
+            activeOverlay.className = "showcase-overlay is-active";
           } else {
             showcaseOverlayImages[inactiveLayerIndex].classList.add(
               "is-leaving",
@@ -1964,6 +1962,10 @@
             showcaseOverlayImages[activeLayerIndex].removeAttribute("src");
             showcaseOverlayVideos[activeLayerIndex].removeAttribute("src");
             showcaseOverlayVideos[activeLayerIndex].pause();
+          }
+          if (media.type === "video") activeMedia.play().catch(() => {});
+          if (media.overlayType === "video") {
+            showcaseOverlayVideos[activeLayerIndex].play().catch(() => {});
           }
           if (!showcaseVisible) {
             showcase.classList.remove("hidden");
@@ -2041,17 +2043,28 @@
         showcasePreloadCache.set(cacheKey, preload);
         return preload;
       }
-      function seekShowcaseVideo(video, seconds) {
-        const seek = () => {
-          if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
-            video.currentTime = seconds;
-          }
-        };
-        if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
-          seek();
-        } else {
-          video.addEventListener("loadedmetadata", seek, { once: true });
+      function prepareShowcaseVideo(video, source, seconds) {
+        if (video.dataset.showcaseSource !== source) {
+          video.dataset.showcaseSource = source;
+          video.src = source;
+          video.load();
         }
+        const ready =
+          video.readyState >= HTMLMediaElement.HAVE_METADATA
+            ? Promise.resolve()
+            : new Promise((resolve) => {
+                video.addEventListener("loadedmetadata", resolve, {
+                  once: true,
+                });
+              });
+        return ready.then(() => {
+          video.currentTime = seconds;
+        });
+      }
+      function prepareShowcaseImage(image, source) {
+        image.src = source;
+        if (typeof image.decode !== "function") return Promise.resolve();
+        return image.decode().catch(() => {});
       }
       async function stopShowcase(
         keepVisible = false,
