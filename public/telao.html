@@ -1503,6 +1503,10 @@
       let showcaseStarted = false;
       let showcaseRun = 0;
       let showcaseStartTimer = null;
+      let showcaseCurrentMediaIndex = -1;
+      let showcaseCurrentMediaStartedAt = 0;
+      let showcaseResumeIndex = -1;
+      let showcaseResumeOffset = 0;
       let flashTimer = null;
       let flashRun = 0;
       let rankConfettiTimer = null;
@@ -1875,7 +1879,10 @@
         restoreRabbitImage();
         const currentRun = ++showcaseRun;
         let showcaseVisible = !showcase.classList.contains("hidden");
-        for (const media of showcaseMedia) {
+        const resumeIndex = showcaseResumeIndex;
+        const resumeOffset = showcaseResumeOffset;
+        for (const [mediaIndex, media] of showcaseMedia.entries()) {
+          if (resumeIndex >= 0 && mediaIndex < resumeIndex) continue;
           const playbackSource =
             media.source === "/rita.mp4" || media.source === "/0919.mp4"
               ? "/0919.mp4?v=2"
@@ -1911,7 +1918,10 @@
               activeMedia.src = playbackSource;
               activeMedia.load();
             }
-            activeMedia.currentTime = 0;
+            seekShowcaseVideo(
+              activeMedia,
+              mediaIndex === resumeIndex ? resumeOffset / 1000 : 0,
+            );
             activeMedia.play().catch(() => {});
           } else {
             activeMedia.src = media.source;
@@ -1934,7 +1944,10 @@
             activeOverlay.className = "showcase-overlay is-active";
             activeOverlay.src = media.overlaySource;
             if (media.overlayType === "video") {
-              activeOverlay.currentTime = 0;
+              seekShowcaseVideo(
+                activeOverlay,
+                mediaIndex === resumeIndex ? resumeOffset / 1000 : 0,
+              );
               activeOverlay.play().catch(() => {});
             }
           } else {
@@ -1964,7 +1977,17 @@
             });
           });
           showcaseLayerIndex = inactiveLayerIndex;
-          await new Promise((resolve) => setTimeout(resolve, media.duration));
+          showcaseCurrentMediaIndex = mediaIndex;
+          showcaseCurrentMediaStartedAt = Date.now();
+          showcaseResumeIndex = -1;
+          showcaseResumeOffset = 0;
+          const remainingDuration = Math.max(
+            0,
+            media.duration - (mediaIndex === resumeIndex ? resumeOffset : 0),
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, remainingDuration),
+          );
           if (currentRun !== showcaseRun) return;
           if (media.overlayType === "video") {
             showcaseOverlayVideos[activeLayerIndex].pause();
@@ -2018,7 +2041,42 @@
         showcasePreloadCache.set(cacheKey, preload);
         return preload;
       }
-      async function stopShowcase(keepVisible = false) {
+      function seekShowcaseVideo(video, seconds) {
+        const seek = () => {
+          if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+            video.currentTime = seconds;
+          }
+        };
+        if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+          seek();
+        } else {
+          video.addEventListener("loadedmetadata", seek, { once: true });
+        }
+      }
+      async function stopShowcase(
+        keepVisible = false,
+        preservePosition = false,
+      ) {
+        if (
+          preservePosition &&
+          showcaseCurrentMediaIndex >= 0 &&
+          showcaseCurrentMediaStartedAt
+        ) {
+          const currentMedia = showcaseMedia[showcaseCurrentMediaIndex];
+          const activeVideo =
+            currentMedia?.type === "video"
+              ? showcaseVideos[1 - showcaseLayerIndex]
+              : null;
+          const elapsed =
+            activeVideo && Number.isFinite(activeVideo.currentTime)
+              ? activeVideo.currentTime * 1000
+              : Date.now() - showcaseCurrentMediaStartedAt;
+          showcaseResumeIndex = showcaseCurrentMediaIndex;
+          showcaseResumeOffset = Math.min(
+            Math.max(0, elapsed),
+            currentMedia?.duration || elapsed,
+          );
+        }
         clearTimeout(showcaseStartTimer);
         showcaseStartTimer = null;
         showcaseRun += 1;
@@ -2055,6 +2113,8 @@
           video.removeAttribute("src");
         });
         showcaseLayerIndex = 0;
+        showcaseCurrentMediaIndex = -1;
+        showcaseCurrentMediaStartedAt = 0;
       }
       function celebrate(venda, transacao, afterAlert) {
         const currentFlashRun = ++flashRun;
@@ -2092,7 +2152,7 @@
         const alertKey = `${data.venda.id}:${data.venda.totalGasto}`;
         if (alertKey === lastAlertKey) return;
         lastAlertKey = alertKey;
-        await stopShowcase();
+        await stopShowcase(false, true);
         celebrate(data.venda, data.transacao, () => {
           render(data.ranking, true);
           showcaseStartTimer = setTimeout(startShowcase, 30000);
