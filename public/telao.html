@@ -2044,7 +2044,7 @@
         return preload;
       }
       function prepareShowcaseVideo(video, source, seconds) {
-        if (video.dataset.showcaseSource !== source) {
+        if (video.getAttribute("src") !== source) {
           video.dataset.showcaseSource = source;
           video.src = source;
           video.load();
@@ -2124,6 +2124,7 @@
           video.pause();
           video.className = "showcase-overlay";
           video.removeAttribute("src");
+          delete video.dataset.showcaseSource;
         });
         showcaseLayerIndex = 0;
         showcaseCurrentMediaIndex = -1;
