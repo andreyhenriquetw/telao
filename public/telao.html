@@ -1506,7 +1506,6 @@
       let showcaseCurrentMediaIndex = -1;
       let showcaseCurrentMediaStartedAt = 0;
       let showcaseResumeIndex = -1;
-      let showcaseResumeOffset = 0;
       let flashTimer = null;
       let flashRun = 0;
       let rankConfettiTimer = null;
@@ -1880,7 +1879,6 @@
         const currentRun = ++showcaseRun;
         let showcaseVisible = !showcase.classList.contains("hidden");
         const resumeIndex = showcaseResumeIndex;
-        const resumeOffset = showcaseResumeOffset;
         for (const [mediaIndex, media] of showcaseMedia.entries()) {
           if (resumeIndex >= 0 && mediaIndex < resumeIndex) continue;
           const playbackSource =
@@ -1912,14 +1910,8 @@
               ? showcaseVideos[inactiveLayerIndex]
               : showcaseImages[inactiveLayerIndex];
           activeMedia.className = `showcase-image is-entering${media.contain ? " showcase-image-contained" : ""}${media.stretch ? " showcase-image-stretched" : ""}`;
-          const resumeSeconds =
-            mediaIndex === resumeIndex ? resumeOffset / 1000 : 0;
           if (media.type === "video") {
-            await prepareShowcaseVideo(
-              activeMedia,
-              playbackSource,
-              resumeSeconds,
-            );
+            await prepareShowcaseVideo(activeMedia, playbackSource, 0);
           } else {
             await prepareShowcaseImage(activeMedia, media.source);
           }
@@ -1939,11 +1931,7 @@
             showcaseOverlayVideos[activeLayerIndex].className =
               "showcase-overlay";
             if (media.overlayType === "video") {
-              await prepareShowcaseVideo(
-                activeOverlay,
-                media.overlaySource,
-                resumeSeconds,
-              );
+              await prepareShowcaseVideo(activeOverlay, media.overlaySource, 0);
             } else {
               await prepareShowcaseImage(activeOverlay, media.overlaySource);
             }
@@ -1982,14 +1970,7 @@
           showcaseCurrentMediaIndex = mediaIndex;
           showcaseCurrentMediaStartedAt = Date.now();
           showcaseResumeIndex = -1;
-          showcaseResumeOffset = 0;
-          const remainingDuration = Math.max(
-            0,
-            media.duration - (mediaIndex === resumeIndex ? resumeOffset : 0),
-          );
-          await new Promise((resolve) =>
-            setTimeout(resolve, remainingDuration),
-          );
+          await new Promise((resolve) => setTimeout(resolve, media.duration));
           if (currentRun !== showcaseRun) return;
           if (media.overlayType === "video") {
             showcaseOverlayVideos[activeLayerIndex].pause();
@@ -2075,20 +2056,7 @@
           showcaseCurrentMediaIndex >= 0 &&
           showcaseCurrentMediaStartedAt
         ) {
-          const currentMedia = showcaseMedia[showcaseCurrentMediaIndex];
-          const activeVideo =
-            currentMedia?.type === "video"
-              ? showcaseVideos[1 - showcaseLayerIndex]
-              : null;
-          const elapsed =
-            activeVideo && Number.isFinite(activeVideo.currentTime)
-              ? activeVideo.currentTime * 1000
-              : Date.now() - showcaseCurrentMediaStartedAt;
           showcaseResumeIndex = showcaseCurrentMediaIndex;
-          showcaseResumeOffset = Math.min(
-            Math.max(0, elapsed),
-            currentMedia?.duration || elapsed,
-          );
         }
         clearTimeout(showcaseStartTimer);
         showcaseStartTimer = null;
